@@ -304,123 +304,139 @@
 
         <!-- CONSOLE DECK -->
         <div id="console-engine" class="main-engine active">
-            <div class="controls" style="flex-direction: row; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <div>
-                    <label>System Core: </label>
-                    <select id="console-core" onchange="handleCoreChange()">
-                        <option value="auto" style="font-weight:bold; color:var(--accent);">🤖 Auto-Detect System from File</option>
-                        
-                        <optgroup label="🌟 3D Heavy Systems">
-                            <option value="psx">Sony PlayStation 1 (PSX)</option>
-                            <option value="n64">Nintendo 64</option>
-                            <option value="psp">PlayStation Portable (PSP)</option>
-                            <option value="saturn">Sega Saturn</option>
-                            <option value="dreamcast">Sega Dreamcast</option>
-                            <option value="naomi">Sega NAOMI Arcade</option>
-                            <option value="atomiswave">Sammy Atomiswave</option>
-                            <option value="3do">3DO Interactive Multiplayer</option>
-                            <option value="jaguar">Atari Jaguar</option>
-                            <option value="nds">Nintendo DS</option>
-                            <option value="cdi">Philips CD-i</option>
-                        </optgroup>
-                        
-                        <optgroup label="🕹️ Arcade & Coin-Op">
-                            <option value="mame2003">Arcade (MAME 2003)</option>
-                            <option value="fbneo">FinalBurn Neo (Arcade/NeoGeo)</option>
-                            <option value="fba">FinalBurn Alpha</option>
-                            <option value="neogeocd">Neo Geo CD</option>
-                            <option value="neogeo">Neo Geo System</option>
-                            <option value="daphne">Daphne (LaserDisc)</option>
-                        </optgroup>
-                        
-                        <optgroup label="🌐 Nintendo Ecosystem">
-                            <option value="nes">NES / Famicom</option>
-                            <option value="snes">Super Nintendo (SNES)</option>
-                            <option value="gb">Game Boy</option>
-                            <option value="gbc">Game Boy Color</option>
-                            <option value="gba">Game Boy Advance</option>
-                            <option value="vb">Virtual Boy</option>
-                            <option value="famicom_disk">Famicom Disk System</option>
-                            <option value="pokemini">Pokémon Mini</option>
-                            <option value="gameandwatch">Game & Watch</option>
-                        </optgroup>
-                        
-                        <optgroup label="🌀 Sega Ecosystem">
-                            <option value="mastersystem">Sega Master System</option>
-                            <option value="megadrive">Sega Genesis / Mega Drive</option>
-                            <option value="segacd">Sega CD</option>
-                            <option value="sega32x">Sega 32X</option>
-                            <option value="sg1000">Sega SG-1000</option>
-                            <option value="gamegear">Sega Game Gear</option>
-                            <option value="pico">Sega Pico</option>
-                        </optgroup>
+            <div class="controls" style="flex-direction: column; align-items: stretch; gap: 15px;">
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <div>
+                        <label>System Core: </label>
+                        <select id="console-core" onchange="handleCoreChange()">
+                            <option value="auto" style="font-weight:bold; color:var(--accent);">🤖 Auto-Detect System from File</option>
+                            
+                            <optgroup label="🌟 3D Heavy Systems">
+                                <option value="psx">Sony PlayStation 1 (PSX)</option>
+                                <option value="n64">Nintendo 64</option>
+                                <option value="psp">PlayStation Portable (PSP)</option>
+                                <option value="saturn">Sega Saturn</option>
+                                <option value="dreamcast">Sega Dreamcast</option>
+                                <option value="naomi">Sega NAOMI Arcade</option>
+                                <option value="atomiswave">Sammy Atomiswave</option>
+                                <option value="3do">3DO Interactive Multiplayer</option>
+                                <option value="jaguar">Atari Jaguar</option>
+                                <option value="nds">Nintendo DS</option>
+                                <option value="cdi">Philips CD-i</option>
+                            </optgroup>
+                            
+                            <optgroup label="🕹️ Arcade & Coin-Op">
+                                <option value="mame2003">Arcade (MAME 2003)</option>
+                                <option value="fbneo">FinalBurn Neo (Arcade/NeoGeo)</option>
+                                <option value="fba">FinalBurn Alpha</option>
+                                <option value="neogeocd">Neo Geo CD</option>
+                                <option value="neogeo">Neo Geo System</option>
+                                <option value="daphne">Daphne (LaserDisc)</option>
+                            </optgroup>
+                            
+                            <optgroup label="🌐 Nintendo Ecosystem">
+                                <option value="nes">NES / Famicom</option>
+                                <option value="snes">Super Nintendo (SNES)</option>
+                                <option value="gb">Game Boy</option>
+                                <option value="gbc">Game Boy Color</option>
+                                <option value="gba">Game Boy Advance</option>
+                                <option value="vb">Virtual Boy</option>
+                                <option value="famicom_disk">Famicom Disk System</option>
+                                <option value="pokemini">Pokémon Mini</option>
+                                <option value="gameandwatch">Game & Watch</option>
+                            </optgroup>
+                            
+                            <optgroup label="🌀 Sega Ecosystem">
+                                <option value="mastersystem">Sega Master System</option>
+                                <option value="megadrive">Sega Genesis / Mega Drive</option>
+                                <option value="segacd">Sega CD</option>
+                                <option value="sega32x">Sega 32X</option>
+                                <option value="sg1000">Sega SG-1000</option>
+                                <option value="gamegear">Sega Game Gear</option>
+                                <option value="pico">Sega Pico</option>
+                            </optgroup>
 
-                        <optgroup label="💥 Classic PC Gaming">
-                            <option value="prboom">DOOM Engine (PrBoom)</option>
-                            <option value="tyrquake">Quake Engine (TyrQuake)</option>
-                            <option value="nxengine">Cave Story (NXEngine)</option>
-                            <option value="easyrpg">RPG Maker 2K/2K3 (EasyRPG)</option>
-                        </optgroup>
+                            <optgroup label="💥 Classic PC Gaming">
+                                <option value="prboom">DOOM Engine (PrBoom)</option>
+                                <option value="tyrquake">Quake Engine (TyrQuake)</option>
+                                <option value="nxengine">Cave Story (NXEngine)</option>
+                                <option value="easyrpg">RPG Maker 2K/2K3 (EasyRPG)</option>
+                            </optgroup>
 
-                        <optgroup label="👾 Retro PC & Microcomputers">
-                            <option value="amiga">Commodore Amiga / CD32</option>
-                            <option value="c64">Commodore 64</option>
-                            <option value="vic20">Commodore VIC-20</option>
-                            <option value="mac">Apple Macintosh Classic</option>
-                            <option value="apple2">Apple II</option>
-                            <option value="x68000">Sharp X68000</option>
-                            <option value="x1">Sharp X1</option>
-                            <option value="pc88">NEC PC-88</option>
-                            <option value="pc98">NEC PC-98</option>
-                            <option value="fmtowns">Fujitsu FM Towns</option>
-                            <option value="cpc">Amstrad CPC</option>
-                            <option value="msx">MSX / MSX2</option>
-                            <option value="zxspectrum">ZX Spectrum</option>
-                            <option value="zx81">Sinclair ZX81</option>
-                            <option value="scummvm">ScummVM Engine</option>
-                            <option value="dos">MS-DOS</option>
-                        </optgroup>
-                        
-                        <optgroup label="📺 Other Classic Consoles">
-                            <option value="atari2600">Atari 2600</option>
-                            <option value="atari5200">Atari 5200</option>
-                            <option value="atari7800">Atari 7800</option>
-                            <option value="lynx">Atari Lynx</option>
-                            <option value="atarist">Atari ST</option>
-                            <option value="pce">PC Engine / TurboGrafx-16</option>
-                            <option value="pcecd">PC Engine CD</option>
-                            <option value="pcfx">PC-FX</option>
-                            <option value="supergrafx">SuperGrafx</option>
-                            <option value="wswan">WonderSwan / Color</option>
-                            <option value="ngp">Neo Geo Pocket / Color</option>
-                            <option value="vectrex">GCE Vectrex</option>
-                            <option value="colecovision">ColecoVision</option>
-                            <option value="intellivision">Intellivision</option>
-                            <option value="odyssey2">Magnavox Odyssey²</option>
-                            <option value="channelf">Fairchild Channel F</option>
-                            <option value="arcadia2001">Emerson Arcadia 2001</option>
-                            <option value="supervision">Watara Supervision</option>
-                            <option value="uzebox">Uzebox</option>
-                            <option value="tic80">TIC-80 Fantasy Console</option>
-                        </optgroup>
-                        
-                        <optgroup label="🌐 Web / Flash">
-                            <option value="flash">Adobe Flash Player (.swf)</option>
-                        </optgroup>
-                    </select>
+                            <optgroup label="👾 Retro PC & Microcomputers">
+                                <option value="amiga">Commodore Amiga / CD32</option>
+                                <option value="c64">Commodore 64</option>
+                                <option value="vic20">Commodore VIC-20</option>
+                                <option value="mac">Apple Macintosh Classic</option>
+                                <option value="apple2">Apple II</option>
+                                <option value="x68000">Sharp X68000</option>
+                                <option value="x1">Sharp X1</option>
+                                <option value="pc88">NEC PC-88</option>
+                                <option value="pc98">NEC PC-98</option>
+                                <option value="fmtowns">Fujitsu FM Towns</option>
+                                <option value="cpc">Amstrad CPC</option>
+                                <option value="msx">MSX / MSX2</option>
+                                <option value="zxspectrum">ZX Spectrum</option>
+                                <option value="zx81">Sinclair ZX81</option>
+                                <option value="scummvm">ScummVM Engine</option>
+                                <option value="dos">MS-DOS</option>
+                            </optgroup>
+                            
+                            <optgroup label="📺 Other Classic Consoles">
+                                <option value="atari2600">Atari 2600</option>
+                                <option value="atari5200">Atari 5200</option>
+                                <option value="atari7800">Atari 7800</option>
+                                <option value="lynx">Atari Lynx</option>
+                                <option value="atarist">Atari ST</option>
+                                <option value="pce">PC Engine / TurboGrafx-16</option>
+                                <option value="pcecd">PC Engine CD</option>
+                                <option value="pcfx">PC-FX</option>
+                                <option value="supergrafx">SuperGrafx</option>
+                                <option value="wswan">WonderSwan / Color</option>
+                                <option value="ngp">Neo Geo Pocket / Color</option>
+                                <option value="vectrex">GCE Vectrex</option>
+                                <option value="colecovision">ColecoVision</option>
+                                <option value="intellivision">Intellivision</option>
+                                <option value="odyssey2">Magnavox Odyssey²</option>
+                                <option value="channelf">Fairchild Channel F</option>
+                                <option value="arcadia2001">Emerson Arcadia 2001</option>
+                                <option value="supervision">Watara Supervision</option>
+                                <option value="uzebox">Uzebox</option>
+                                <option value="tic80">TIC-80 Fantasy Console</option>
+                            </optgroup>
+                            
+                            <optgroup label="🌐 Web / Flash">
+                                <option value="flash">Adobe Flash Player (.swf)</option>
+                            </optgroup>
+
+                            <optgroup label="🚫 Modern Systems (Not Browser Compatible)">
+                                <option value="none" disabled>Original Xbox (No Web Core)</option>
+                                <option value="none" disabled>PlayStation 2 (No Web Core)</option>
+                                <option value="none" disabled>Nintendo GameCube (No Web Core)</option>
+                                <option value="none" disabled>Nintendo Wii (No Web Core)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div><label>ROM: </label><input type="file" id="console-rom" accept=".swf,.nes,.fds,.sfc,.smc,.z64,.n64,.v64,.gb,.gbc,.gba,.nds,.sms,.md,.gen,.smd,.gg,.exe,.zip,.a26,.a52,.a78,.lnx,.pce,.ws,.wsc,.chd,.iso,.cue,.bin,.m3u,.vb,.ngp,.ngc,.j64,.jag,.32x,.sg,.col,.int,.vec,.adf,.tap,.z80,.dim,.hdi,.d88,.mgw,.cdi,.st,.sgx,.uze,.p8,.sv,.dsk,.cas,.wad,.pak,.ldb" onchange="autoDetectCore()"></div>
+                    
+                    <div><label>Cover Art (Opt): </label><input type="file" id="console-cover" accept="image/*"></div>
+
+                    <div id="bios-upload-container" style="display:none;">
+                        <label style="color:var(--warn);" title="Required to prevent glitches/crashing for this system!">BIOS File: </label>
+                        <input type="file" id="console-bios" accept=".bin,.rom,.zip" onchange="setConsoleBios(this)" style="border-color:var(--warn);">
+                    </div>
+
+                    <button onclick="installAndBootConsole()" style="background:var(--success); color:#000;">💾 Install & Play</button>
+                    <button onclick="triggerFullscreen('game-iframe')">📺 Fullscreen</button>
+                    <span id="install-progress" style="color: var(--success); font-size: 12px; margin-left: 10px; font-weight: bold;"></span>
                 </div>
-                <div><label>ROM: </label><input type="file" id="console-rom" accept=".swf,.nes,.fds,.sfc,.smc,.z64,.n64,.v64,.gb,.gbc,.gba,.nds,.sms,.md,.gen,.smd,.gg,.exe,.zip,.a26,.a52,.a78,.lnx,.pce,.ws,.wsc,.chd,.iso,.cue,.bin,.m3u,.vb,.ngp,.ngc,.j64,.jag,.32x,.sg,.col,.int,.vec,.adf,.tap,.z80,.dim,.hdi,.d88,.mgw,.cdi,.st,.sgx,.uze,.p8,.sv,.dsk,.cas,.wad,.pak,.ldb" onchange="autoDetectCore()"></div>
-                
-                <div><label>Cover Art (Opt): </label><input type="file" id="console-cover" accept="image/*"></div>
 
-                <div id="bios-upload-container" style="display:none;">
-                    <label style="color:var(--warn);" title="Required to prevent glitches/crashing for this system!">BIOS File: </label>
-                    <input type="file" id="console-bios" accept=".bin,.rom,.zip" onchange="setConsoleBios(this)" style="border-color:var(--warn);">
+                <!-- CONSOLE AUTOSAVE TOGGLE -->
+                <div style="display:flex; align-items:center; padding:10px; background:#0b0c10; border-radius:6px; border:1px solid #333;">
+                    <label style="font-size:12px; font-weight:bold; color:var(--success); cursor:pointer;">
+                        <input type="checkbox" id="console-autosave" checked> 🔄 Enable Quiet Auto-Save (Saves State every 60s while playing)
+                    </label>
                 </div>
-
-                <button onclick="installAndBootConsole()" style="background:var(--success); color:#000;">💾 Install & Play</button>
-                <button onclick="triggerFullscreen('game-iframe')">📺 Fullscreen</button>
-                <span id="install-progress" style="color: var(--success); font-size: 12px; margin-left: 10px; font-weight: bold;"></span>
             </div>
             
             <div style="display:flex; flex:1; gap:15px; min-height:0; margin-top:10px;">
@@ -492,6 +508,15 @@
     </div>
 
     <script>
+        // --- ARE YOU SURE YOU WANT TO LEAVE PROTECTION ---
+        window.addEventListener("beforeunload", function (e) {
+            if (emulatorInstance || window.activeGameUrl) {
+                e.preventDefault();
+                e.returnValue = "You have an active emulation session running. Are you sure you want to leave and potentially lose unsaved progress?";
+                return e.returnValue;
+            }
+        });
+
         let emulatorInstance = null;
         window.activeOsUrl = null; 
         window.activeHddUrl = null; 
@@ -581,7 +606,7 @@
             }
         });
 
-        const request = indexedDB.open(dbName, 4); // Incremented version safely
+        const request = indexedDB.open(dbName, 4); 
         request.onupgradeneeded = (e) => { 
             db = e.target.result; 
             if (e.oldVersion < 1) {
@@ -594,7 +619,6 @@
             if (e.oldVersion < 3) {
                 db.createObjectStore("settings"); 
             }
-            // Version 4 adds support for favorites and coverarts seamlessly within the same "games" object structure
         };
         request.onsuccess = (e) => { 
             db = e.target.result; 
@@ -1224,7 +1248,7 @@
         };
 
         window.launchCore = async function(core, fileBlob, gameId, gameName) {
-            updateControlMappings(core); // <--- Triggers Keybinds UI Sidebar
+            updateControlMappings(core); 
             
             if (window.activeGameUrl) {
                 URL.revokeObjectURL(window.activeGameUrl);
@@ -1234,14 +1258,12 @@
             
             const safeName = gameName.replace(/'/g, "\\'").replace(/"/g, '\\"');
             
-            // Generate a deterministic game ID so saves link properly across sessions
             const deterministicGameId = gameId ? 'game_' + gameId : 'game_' + safeName.replace(/[^a-zA-Z0-9]/g, '_');
 
             const container = document.getElementById('console-screen');
             container.innerHTML = '<iframe id="game-iframe" allow="fullscreen *; gamepad *; autoplay *" style="width: 100%; height: 100%; border: none; background: #000;"></iframe>';
             const iframe = document.getElementById('game-iframe');
 
-            // WebAssembly Flash Emulation Route
             if (core === 'flash') {
                 const emuContent = `
                     <!DOCTYPE html>
@@ -1278,7 +1300,6 @@
                 return;
             }
 
-            // Standard EmulatorJS Route
             let biosString = '';
             if (window.consoleBiosFile) {
                 const biosUrl = URL.createObjectURL(window.consoleBiosFile);
@@ -1287,11 +1308,21 @@
             
             const perfToggle = document.getElementById('toggle-performance').checked;
             
-            // SMART THREADING FIX: Enable multi-threading ONLY for heavy 3D consoles to fix audio lag, keep disabled for retro 2D
             const heavyCores = ['psx', 'n64', 'psp', 'saturn', 'dreamcast', 'naomi', 'atomiswave', '3do', 'jaguar', 'nds'];
             const useThreads = heavyCores.includes(core);
             const threadConfig = useThreads ? `window.EJS_threads = true;` : `window.EJS_threads = false;`;
             const fastForward = perfToggle ? `window.EJS_fastforward = true; window.EJS_disableDatatracker = true;` : `window.EJS_disableDatatracker = true;`;
+
+            const consoleAutosave = document.getElementById('console-autosave') ? document.getElementById('console-autosave').checked : false;
+            const autosaveScript = consoleAutosave ? `
+                setInterval(() => {
+                    try {
+                        if (window.EJS_emulator && window.EJS_emulator.is_running && window.EJS_emulator.gameManager) {
+                            window.EJS_emulator.gameManager.quickSave(9);
+                        }
+                    } catch(e) {}
+                }, 60000);
+            ` : '';
 
             const emuContent = `
                 <!DOCTYPE html>
@@ -1310,6 +1341,12 @@
                         window.EJS_gameID = '${deterministicGameId}'; 
                         window.EJS_gameName = '${safeName}';
                         
+                        // INJECTED STUN SERVERS FOR WEB-RTC NETPLAY ROUTING
+                        window.EJS_netplayIceServers = [
+                            { urls: "stun:stun.l.google.com:19302" },
+                            { urls: "stun:stun1.l.google.com:19302" }
+                        ];
+
                         ${threadConfig}
                         ${fastForward}
                         ${biosString}
@@ -1319,11 +1356,11 @@
                         window.EJS_multitap = true;
                     <\/script>
                     <script src="https://cdn.emulatorjs.org/latest/data/loader.js"><\/script>
+                    <script>${autosaveScript}<\/script>
                 </body>
                 </html>
             `;
             
-            // This Blob URL injection fixes the "FAILED TO SAVE STATE" error by allowing IndexedDB pass-through
             const blob = new Blob([emuContent], { type: 'text/html' });
             iframe.src = URL.createObjectURL(blob);
             iframe.focus();
@@ -1555,7 +1592,7 @@
                             }
                         } catch(e) { console.warn("Autosave skipped this cycle.", e); }
                     }
-                }, 60000); // 60s asynchronous persistence
+                }, 60000); 
             }
         };
 
@@ -1569,7 +1606,6 @@
                     emulatorInstance.destroy();
                     emulatorInstance = null;
                     
-                    // Strict Garage Collection Trigger - Force revokes giant memory blobs
                     if (window.activeOsUrl) { URL.revokeObjectURL(window.activeOsUrl); window.activeOsUrl = null; }
                     if (window.activeHddUrl) { URL.revokeObjectURL(window.activeHddUrl); window.activeHddUrl = null; }
                     
