@@ -355,6 +355,13 @@
                             <option value="pico">Sega Pico</option>
                         </optgroup>
 
+                        <optgroup label="💥 Classic PC Gaming">
+                            <option value="prboom">DOOM Engine (PrBoom)</option>
+                            <option value="tyrquake">Quake Engine (TyrQuake)</option>
+                            <option value="nxengine">Cave Story (NXEngine)</option>
+                            <option value="easyrpg">RPG Maker 2K/2K3 (EasyRPG)</option>
+                        </optgroup>
+
                         <optgroup label="👾 Retro PC & Microcomputers">
                             <option value="amiga">Commodore Amiga / CD32</option>
                             <option value="c64">Commodore 64</option>
@@ -402,7 +409,7 @@
                         </optgroup>
                     </select>
                 </div>
-                <div><label>ROM: </label><input type="file" id="console-rom" accept=".swf,.nes,.fds,.sfc,.smc,.z64,.n64,.v64,.gb,.gbc,.gba,.nds,.sms,.md,.gen,.smd,.gg,.exe,.zip,.a26,.a52,.a78,.lnx,.pce,.ws,.wsc,.chd,.iso,.cue,.bin,.m3u,.vb,.ngp,.ngc,.j64,.jag,.32x,.sg,.col,.int,.vec,.adf,.tap,.z80,.dim,.hdi,.d88,.mgw,.cdi,.st,.sgx,.uze,.p8,.sv,.dsk,.cas" onchange="autoDetectCore()"></div>
+                <div><label>ROM: </label><input type="file" id="console-rom" accept=".swf,.nes,.fds,.sfc,.smc,.z64,.n64,.v64,.gb,.gbc,.gba,.nds,.sms,.md,.gen,.smd,.gg,.exe,.zip,.a26,.a52,.a78,.lnx,.pce,.ws,.wsc,.chd,.iso,.cue,.bin,.m3u,.vb,.ngp,.ngc,.j64,.jag,.32x,.sg,.col,.int,.vec,.adf,.tap,.z80,.dim,.hdi,.d88,.mgw,.cdi,.st,.sgx,.uze,.p8,.sv,.dsk,.cas,.wad,.pak,.ldb" onchange="autoDetectCore()"></div>
                 
                 <div><label>Cover Art (Opt): </label><input type="file" id="console-cover" accept="image/*"></div>
 
@@ -523,6 +530,8 @@
             'x68000': 'Sharp X68000', 'x1': 'Sharp X1', 'pc88': 'NEC PC-88', 'pc98': 'NEC PC-98', 'fmtowns': 'FM Towns', 'cpc': 'Amstrad CPC',
             'scummvm': 'ScummVM Engine', 'msx': 'MSX', 'zxspectrum': 'ZX Spectrum', 'zx81': 'Sinclair ZX81', 'dos': 'MS-DOS', 
             
+            'prboom': 'DOOM Engine', 'tyrquake': 'Quake Engine', 'nxengine': 'Cave Story', 'easyrpg': 'RPG Maker Engine',
+            
             'tic80': 'TIC-80 Fantasy Console', 'uzebox': 'Uzebox', 'pico8': 'Pico-8',
             
             'flash': 'Adobe Flash Player (Ruffle)'
@@ -533,7 +542,7 @@
             'nintendo': ['nes', 'snes', 'n64', 'gb', 'gbc', 'gba', 'nds', 'vb', 'famicom_disk', 'pokemini', 'gameandwatch'],
             'sega': ['mastersystem', 'megadrive', 'saturn', 'dreamcast', 'segacd', 'sega32x', 'sg1000', 'naomi', 'gamegear', 'atomiswave', 'pico'],
             'arcade': ['mame2003', 'fbneo', 'fba', 'neogeocd', 'neogeo', 'daphne'],
-            'retro': ['atari2600', 'atari5200', 'atari7800', 'lynx', 'jaguar', 'atarist', 'pce', 'pcecd', 'pcfx', 'supergrafx', 'wswan', 'ngp', '3do', 'vectrex', 'colecovision', 'intellivision', 'odyssey2', 'amiga', 'mac', 'x68000', 'x1', 'pc88', 'pc98', 'fmtowns', 'scummvm', 'msx', 'zxspectrum', 'dos', 'c64', 'tic80', 'uzebox', 'pico8', 'vic20', 'channelf', 'zx81', 'arcadia2001', 'supervision', 'cdi', 'apple2', 'cpc'],
+            'retro': ['atari2600', 'atari5200', 'atari7800', 'lynx', 'jaguar', 'atarist', 'pce', 'pcecd', 'pcfx', 'supergrafx', 'wswan', 'ngp', '3do', 'vectrex', 'colecovision', 'intellivision', 'odyssey2', 'amiga', 'mac', 'x68000', 'x1', 'pc88', 'pc98', 'fmtowns', 'scummvm', 'msx', 'zxspectrum', 'dos', 'c64', 'tic80', 'uzebox', 'pico8', 'vic20', 'channelf', 'zx81', 'arcadia2001', 'supervision', 'cdi', 'apple2', 'cpc', 'prboom', 'tyrquake', 'nxengine', 'easyrpg'],
             'web': ['flash']
         };
 
@@ -775,7 +784,8 @@
                 'pce': 'pce', 'ws': 'wswan', 'wsc': 'wswan', 'ngp': 'ngp', 'ngc': 'ngp',
                 'sg': 'sg1000', 'col': 'colecovision', 'int': 'intellivision', 'vec': 'vectrex',
                 'adf': 'amiga', 'tap': 'zxspectrum', 'z80': 'zxspectrum', 'tic': 'tic80', 'dim': 'x68000', 'hdi': 'pc98', 'd88': 'pc88',
-                'mgw': 'gameandwatch', 'cdi': 'cdi', 'st': 'atarist', 'sgx': 'supergrafx', 'uze': 'uzebox', 'p8': 'pico8', 'sv': 'supervision'
+                'mgw': 'gameandwatch', 'cdi': 'cdi', 'st': 'atarist', 'sgx': 'supergrafx', 'uze': 'uzebox', 'p8': 'pico8', 'sv': 'supervision',
+                'wad': 'prboom', 'pak': 'tyrquake', 'ldb': 'easyrpg'
             };
             
             const sharedCDFormats = ['chd', 'iso', 'cue', 'bin', 'm3u', 'dsk', 'cas'];
@@ -1223,6 +1233,10 @@
             const url = window.activeGameUrl;
             
             const safeName = gameName.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            
+            // Generate a deterministic game ID so saves link properly across sessions
+            const deterministicGameId = gameId ? 'game_' + gameId : 'game_' + safeName.replace(/[^a-zA-Z0-9]/g, '_');
+
             const container = document.getElementById('console-screen');
             container.innerHTML = '<iframe id="game-iframe" allow="fullscreen *; gamepad *; autoplay *" style="width: 100%; height: 100%; border: none; background: #000;"></iframe>';
             const iframe = document.getElementById('game-iframe');
@@ -1258,10 +1272,8 @@
                     </body>
                     </html>
                 `;
-                const doc = iframe.contentWindow.document;
-                doc.open();
-                doc.write(emuContent);
-                doc.close();
+                const blob = new Blob([emuContent], { type: 'text/html' });
+                iframe.src = URL.createObjectURL(blob);
                 iframe.focus();
                 return;
             }
@@ -1295,7 +1307,7 @@
                         window.EJS_gameUrl = '${url}';
                         window.EJS_pathtodata = 'https://cdn.emulatorjs.org/latest/data/';
                         
-                        window.EJS_gameID = 'game_${gameId || Date.now()}'; 
+                        window.EJS_gameID = '${deterministicGameId}'; 
                         window.EJS_gameName = '${safeName}';
                         
                         ${threadConfig}
@@ -1311,10 +1323,9 @@
                 </html>
             `;
             
-            const doc = iframe.contentWindow.document;
-            doc.open();
-            doc.write(emuContent);
-            doc.close();
+            // This Blob URL injection fixes the "FAILED TO SAVE STATE" error by allowing IndexedDB pass-through
+            const blob = new Blob([emuContent], { type: 'text/html' });
+            iframe.src = URL.createObjectURL(blob);
             iframe.focus();
         };
 
