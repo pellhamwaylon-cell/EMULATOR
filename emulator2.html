@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Middlanders Universal Emulation Engine</title>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <script src="https://cdn.jsdelivr.net/npm/v86/build/libv86.js"></script>
+    <style>
+        :root { 
+            --bg: #0b0c10; --panel: #14181f; --accent: #66fcf1; --text: #c5c6c7; 
+            --danger: #ff0055; --success: #00ffaa; --warn: #ffd700;
+            --brand-sony: #00439c; --brand-nintendo: #e60012; --brand-sega: #0059a6; 
+            --brand-arcade: #ff6600; --brand-retro: #009966; --brand-web: #f03a17;
+        }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, monospace; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        .header { background: var(--panel); padding: 15px 20px; border-bottom: 2px solid var(--accent); display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { margin: 0; font-size: 20px; color: var(--accent); letter-spacing: 2px; }
+        .tabs { display: flex; gap: 10px; align-items: center;}
+        .tab-btn { background: #000; color: #888; border: 1px solid #333; padding: 8px 20px; cursor: pointer; font-weight: bold; border-radius: 4px; transition: 0.2s;}
+        .tab-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .storage-btn { background: #222; color: #fff; border: 1px solid var(--accent); padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px;}
+        .storage-btn:hover { background: var(--accent); color: #000; }
+        .viewer-btn { background: #1a1a24; color: var(--success); border: 1px solid var(--success); padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px; transition: 0.2s;}
+        .viewer-btn:hover { background: var(--success); color: #000; }
+
+        .workspace { flex: 1; display: flex; position: relative; padding: 20px; gap:20px; overflow:hidden;}
+        
+        .sidebar-panel { width: 360px; background: var(--panel); border-radius: 8px; border: 1px solid #333; display:flex; flex-direction:column; overflow:hidden; gap: 10px;}
+        .sidebar-section { flex: 1; display: flex; flex-direction: column; overflow: hidden;}
+        .sidebar-section h2 { margin:0; padding:12px 15px; background:#000; color:var(--accent); font-size:13px; border-bottom:1px solid #333; display: flex; justify-content: space-between; align-items: center;}
+        .library-list { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px;}
+        
+        .lib-item { background: #000; padding: 10px; border: 1px solid #222; border-radius: 4px; display:flex; justify-content:space-between; align-items:center; border-left: 4px solid #444; position: relative;}
+        .lib-item-info { display:flex; flex-direction:column; gap:3px; overflow:hidden; }
+        .lib-title { font-weight:bold; font-size:11px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display: flex; align-items: center; gap: 5px;}
+        .lib-core { font-size:9px; color:#aaa; text-transform:uppercase;}
+        .lib-actions { display:flex; gap:5px; flex-wrap:wrap;}
+        .lib-btn { background:#222; border:1px solid #444; color:#fff; padding:5px 8px; border-radius:4px; font-size:10px; cursor:pointer;}
+        .lib-btn:hover { background:var(--accent); color:#000; }
+        .lib-btn.del:hover { background:var(--danger); border-color:var(--danger); color:#fff;}
+
+        .fav-btn { background: transparent; border: none; font-size: 14px; cursor: pointer; color: #444; padding: 0; line-height: 1; transition: 0.2s; }
+        .fav-btn:hover { color: #888; transform: scale(1.1); }
+        .fav-btn.active { color: var(--warn); text-shadow: 0 0 8px rgba(255, 215, 0, 0.6); }
+
+        .cross-save-box { background: #000; margin: 10px; padding: 12px; border: 1px solid #333; border-radius: 6px; display: flex; flex-direction: column; gap: 8px;}
+        .cross-save-select { width: 100%; padding: 6px; background: #111; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 11px;}
+
+        .main-engine { flex: 1; display: none; flex-direction: column; overflow-y: auto;}
+        .main-engine.active { display: flex; }
+        .controls { background: var(--panel); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; display: flex; flex-direction: column; gap: 15px;}
+        
+        .sys-upload-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; background: #000; padding: 15px; border-radius: 8px; border: 1px dashed #444; margin-bottom: 20px;}
+        .sys-card { background: #111; padding: 10px; border-radius: 6px; border: 1px solid #333; display:flex; flex-direction:column; gap:8px;}
+        .sys-status { font-size: 10px; font-weight: bold; }
+        .status-missing { color: var(--danger); }
+        .status-ready { color: var(--success); }
+
+        select, input[type="file"], input[type="text"], button { padding: 8px; background: #000; color: white; border: 1px solid var(--accent); border-radius: 4px; font-family: monospace; }
+        button { cursor: pointer; font-weight: bold; background: #000; color: var(--accent); transition: 0.2s; }
+        button:hover { background: var(--accent); color: #000; }
+
+        .subtab-btn { background: transparent; color: #888; border: none; border-bottom: 2px solid transparent; padding: 10px 15px; cursor: pointer; font-weight: bold; font-size: 13px; transition:0.2s;}
+        .subtab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .subtab-btn:hover { color: #fff; }
+        
+        #os-screen { flex: 1; background: #000; border: 2px solid #333; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; min-height: 430px;}
+        #os-screen_container { transform: scale(1.1); } 
+        #console-screen { flex: 1; background: #000; border: 2px solid #333; border-radius: 8px; overflow: hidden; position: relative; }
+        
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 9999; }
+        .modal-content { background: var(--panel); padding: 30px; border: 2px solid var(--accent); width: 600px; display: flex; flex-direction: column; gap: 15px; border-radius: 8px; max-height: 85vh;}
+        
+        .viewer-modal-content { width: 90vw !important; height: 90vh !important; max-height: 90vh !important; background: linear-gradient(135deg, #111 0%, #1a1a24 100%); border: 1px solid #444; border-radius: 12px; }
+        .xmb-nav { display: flex; gap: 20px; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px; overflow-x: auto; }
+        .xmb-tab { background: transparent; border: none; color: #888; font-size: 16px; font-weight: bold; cursor: pointer; padding: 5px 10px; border-bottom: 2px solid transparent; transition: 0.3s; white-space: nowrap;}
+        .xmb-tab:hover { color: #fff; }
+        .xmb-tab.active { color: #fff; border-bottom: 2px solid var(--accent); text-shadow: 0 0 10px rgba(102,252,241,0.5); }
+        .xmb-tab.fav-tab { color: var(--warn); }
+        .xmb-tab.fav-tab.active { border-bottom: 2px solid var(--warn); text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+
+        .viewer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; overflow-y: auto; padding-right: 10px; flex: 1; }
+        .viewer-card { background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 10px; transition: 0.2s; backdrop-filter: blur(5px); border-top: 3px solid #444; position: relative;}
+        .viewer-card:hover { transform: scale(1.02); box-shadow: 0 10px 20px rgba(0,0,0,0.5); background: rgba(0,0,0,0.8); z-index: 10;}
+        .viewer-card.sony { border-top-color: var(--brand-sony); }
+        .viewer-card.nintendo { border-top-color: var(--brand-nintendo); }
+        .viewer-card.sega { border-top-color: var(--brand-sega); }
+        .viewer-card.arcade { border-top-color: var(--brand-arcade); }
+        .viewer-card.retro { border-top-color: var(--brand-retro); }
+        .viewer-card.web { border-top-color: var(--brand-web); }
+
+        .viewer-cover { width: 100%; height: 140px; object-fit: cover; border-radius: 6px; background: #000; border-bottom: 2px solid rgba(255,255,255,0.1); margin-bottom: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.6); }
+
+        #storage-list { max-height: 350px; overflow-y: auto; background: #000; padding: 10px; border: 1px solid #333; border-radius: 4px;}
+        .storage-item { display: flex; justify-content: space-between; background: #111; padding: 10px; margin-bottom: 5px; border-radius: 4px; align-items: center;}
+
+        input[type=range] { -webkit-appearance: none; background: transparent; width: 100%; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; margin-top: -6px; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #333; border-radius: 2px; }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        #v86-loader { display: none; position: absolute; top: 20px; right: 20px; background: rgba(20, 24, 31, 0.95); border: 2px solid var(--accent); padding: 15px; border-radius: 8px; z-index: 1000; align-items: center; gap: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.7); }
+        .spinner { width: 24px; height: 24px; border: 3px solid #333; border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        .loader-close { background: transparent; border: none; color: var(--danger); font-size: 20px; cursor: pointer; padding: 0; line-height: 1; margin-left: 10px; transition: 0.2s; }
+        .loader-close:hover { color: #ff0000; transform: scale(1.2); }
+        
+        .clear-btn { background: #333; border: 1px solid #555; color: #fff; padding: 8px 12px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 14px; }
+        .clear-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Ω UNIVERSAL EMULATION DECK</h1>
+        <div class="tabs">
+            <button class="tab-btn" onclick="switchTab('os')">x86 Workstation</button>
+            <button class="tab-btn active" onclick="switchTab('console')">Arcade & Consoles</button>
+            <button class="viewer-btn" onclick="openLibraryViewer()">🗂️ Full ROM Viewer</button>
+            <button class="storage-btn" onclick="openStorageManager()">💽 Storage Manager</button>
+        </div>
+    </div>
+
+    <div class="workspace">
+        
+        <!-- DYNAMIC SIDEBAR -->
+        <div class="sidebar-panel">
+            
+            <!-- CONSOLE SIDEBAR VIEW -->
+            <div id="console-sidebar-content" style="display: flex; flex-direction: column; height: 100%;">
+                <div class="sidebar-section">
+                    <h2>💾 Installed ROM Library</h2>
+                    <div id="game-list" class="library-list"></div>
+                </div>
+                
+                <div class="sidebar-section" style="flex: 0 0 auto; border-top: 1px solid #333; background: #0d0f14;">
+                    <h2>🔄 Cross-Save Data Linker</h2>
+                    <div class="cross-save-box">
+                        <label style="font-size:10px; font-weight:bold; color:var(--accent);">SOURCE GAME:</label>
+                        <select id="src-link-game" class="cross-save-select"><option value="">Select source game...</option></select>
+                        <label style="font-size:10px; font-weight:bold; color:var(--warn); margin-top:4px;">TARGET GAME:</label>
+                        <select id="dest-link-game" class="cross-save-select"><option value="">Select target game...</option></select>
+                        <button style="margin-top:5px; padding:6px; font-size:11px;" onclick="executeCrossSaveSync()">⚡ Link Cards & Mirror Progress</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- X86 OS SNAPSHOT SIDEBAR VIEW -->
+            <div id="os-sidebar-content" style="display: none; flex-direction: column; height: 100%;">
+                <div style="padding: 10px; background: rgba(255,0,85,0.1); border-bottom: 1px solid #333; font-size: 11px; color: var(--text);">
+                    <strong style="color:var(--danger);">⚠️ SNAPSHOT RULE:</strong><br>
+                    Click <strong>🚀 Fast Boot</strong> on your ISO/HDD <em>before</em> clicking Load on a Snapshot!
+                </div>
+                <div class="sidebar-section">
+                    <h2>🖥️ Virtual Machine Snapshots</h2>
+                    <div id="snapshot-list" class="library-list"></div>
+                </div>
+                
+                <div class="sidebar-section" style="flex: 0 0 auto; border-top: 1px solid #333; background: #0d0f14; padding: 15px;">
+                    <button style="width: 100%; border-color: var(--success); color: var(--success); font-size: 13px; padding: 10px; margin-bottom: 10px;" onclick="createNewOSState()">📸 Capture New Snapshot</button>
+                    <button style="width: 100%; border-color: var(--accent); color: #fff; font-size: 13px; padding: 10px;" onclick="document.getElementById('import-state-upload').click()">📥 Import State from File</button>
+                    <input type="file" id="import-state-upload" accept=".bin" style="display:none" onchange="importOSState(event)">
+                </div>
+            </div>
+
+        </div>
+
+        <!-- x86 WORKSTATION -->
+        <div id="os-engine" class="main-engine">
+            
+            <!-- X86 INTERNAL SUB-TABS -->
+            <div style="display: flex; gap: 15px; border-bottom: 2px solid #333; margin-bottom: 15px;">
+                <button id="tab-hw" class="subtab-btn active" onclick="switchX86Tab('hw')">Hardware & Boot Options</button>
+                <button id="tab-disk" class="subtab-btn" onclick="switchX86Tab('disk')">Disk Management & Downloads</button>
+            </div>
+
+            <!-- HARDWARE & BOOT TAB -->
+            <div id="x86-hw-panel" style="display: flex; flex-direction: column;">
+                <h3 style="margin-top:0; font-size:14px; color:var(--accent);">Hardware Core Files (Upload Once)</h3>
+                <div class="sys-upload-grid">
+                    <div class="sys-card">
+                        <span style="font-size:11px; font-weight:bold; color:#fff;">v86.wasm (Engine)</span>
+                        <span id="stat-wasm" class="sys-status status-missing">🔴 MISSING</span>
+                        <input type="file" id="v86-wasm" accept=".wasm"><button onclick="saveV86Core('wasm')">Inject</button>
+                    </div>
+                    <div class="sys-card">
+                        <span style="font-size:11px; font-weight:bold; color:#fff;">seabios.bin (BIOS)</span>
+                        <span id="stat-bios" class="sys-status status-missing">🔴 MISSING</span>
+                        <input type="file" id="v86-bios" accept=".bin"><button onclick="saveV86Core('bios')">Inject</button>
+                    </div>
+                    <div class="sys-card">
+                        <span style="font-size:11px; font-weight:bold; color:#fff;">vgabios.bin (VGA)</span>
+                        <span id="stat-vga" class="sys-status status-missing">🔴 MISSING</span>
+                        <input type="file" id="v86-vga" accept=".bin"><button onclick="saveV86Core('vga')">Inject</button>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap:wrap; width: 100%;">
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <label>Boot Media (ISO): </label>
+                            <input type="file" id="os-file" accept=".iso,.img,.fd,.dsk,.raw,.vhd,.qcow2">
+                            <button class="clear-btn" onclick="document.getElementById('os-file').value=''" title="Eject ISO">✖</button>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <label style="color:var(--warn);" title="Required if you are installing an OS!">Target HDD (IMG): </label>
+                            <input type="file" id="hdd-file" accept=".img,.raw,.vhd,.hda" style="border-color:var(--warn);">
+                            <button class="clear-btn" onclick="document.getElementById('hdd-file').value=''" title="Eject HDD">✖</button>
+                        </div>
+                        
+                        <button onclick="bootOS()">🚀 Fast Boot</button>
+                        <button onclick="triggerFullscreen('os-screen')">📺 Fullscreen</button>
+                        <button onclick="stopOS()" style="border-color: var(--danger); color: var(--danger);">🛑 Power Off</button>
+                    </div>
+                    
+                    <!-- HYPERVISOR HARDWARE SLIDERS & TOGGLES -->
+                    <div style="display: flex; gap: 20px; align-items: center; width: 100%; background: #000; padding: 10px; border-radius: 6px; border: 1px solid #333; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="font-size:11px; font-weight:bold; color:var(--success); display:block; margin-bottom:5px;">
+                                MEMORY (RAM): <span id="ram-val">1024</span> MB
+                            </label>
+                            <input type="range" id="ram-slider" min="128" max="2048" step="128" value="1024" oninput="updateRamVisual(this.value)" onchange="saveSettings()">
+                            <span style="color:var(--danger); font-size:10px; font-weight:bold;">⚠️ STRICT GARBAGE COLLECTION ACTIVE</span>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="font-size:11px; font-weight:bold; color:var(--warn); display:block; margin-bottom:5px;">
+                                CPU ALLOCATION: <span id="cpu-val">70</span>%
+                            </label>
+                            <input type="range" id="cpu-slider" min="10" max="100" step="5" value="70" oninput="updateCpuVisual(this.value)" onchange="saveSettings()">
+                        </div>
+                        
+                        <div style="flex: 1; display:flex; flex-direction:column; gap:6px; border-left:1px solid #333; padding-left:15px; min-width: 200px;">
+                            <div style="display:flex; gap:15px; border-bottom:1px solid #333; padding-bottom:5px;">
+                                <label style="font-size:11px; font-weight:bold; color:var(--text); cursor:pointer;">
+                                    <input type="checkbox" id="toggle-acpi" onchange="saveSettings()"> ACPI Power
+                                </label>
+                                <label style="font-size:11px; font-weight:bold; color:var(--text); cursor:pointer;">
+                                    <input type="checkbox" id="toggle-apic" onchange="saveSettings()"> APIC IRQ
+                                </label>
+                                <label style="font-size:11px; font-weight:bold; color:var(--success); cursor:pointer;">
+                                    <input type="checkbox" id="toggle-autosave" onchange="saveSettings()"> 🔄 Auto-Save (60s)
+                                </label>
+                            </div>
+                            <div style="display:flex; gap:15px; padding-top:2px;">
+                                <label style="font-size:11px; font-weight:bold; color:var(--danger); cursor:pointer;">
+                                    <input type="checkbox" id="toggle-performance" onchange="toggleMode('perf')"> ⚡ Perf Mode (No Audio)
+                                </label>
+                                <label style="font-size:11px; font-weight:bold; color:#ff00aa; cursor:pointer;">
+                                    <input type="checkbox" id="toggle-gaming" onchange="toggleMode('gaming')"> 🎮 Gaming Mode (GFX + Audio)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DISK MANAGEMENT TAB -->
+            <div id="x86-disk-panel" style="display: none; flex-direction: column; gap: 20px;">
+                <div style="background: #111; padding: 20px; border-radius: 8px; border: 1px solid var(--accent); display:flex; flex-direction:column; gap:10px; align-items:flex-start;">
+                    <h3 style="margin:0; color:var(--accent); font-size:16px;">💾 Download Bootable Image</h3>
+                    <p style="margin:0; font-size:12px; color:#aaa; max-width:80%;">Extract your actively mounted virtual Hard Drive (.img) with all the files and OS installations directly back to your local computer. You MUST boot the VM first before exporting.</p>
+                    <button onclick="exportHDD()" style="background:var(--success); color:#000; font-size:14px; padding:10px 20px; border:2px solid #fff;">⬇️ Download Full HDD Image</button>
+                </div>
+
+                <div style="display: flex; gap: 10px; align-items: center; width: 100%; background: #111; padding: 15px; border-radius: 8px; border: 1px dashed var(--accent);">
+                    <label style="font-size:12px; font-weight:bold; color:var(--accent);">LIVE HARDWARE BRIDGE:</label>
+                    <input type="file" id="inject-file" style="flex:1;">
+                    <select id="inject-type">
+                        <option value="fda">Mount to Floppy (A:)</option>
+                        <option value="cdrom">Mount to CD-ROM (D:)</option>
+                    </select>
+                    <button onclick="injectDrive()" style="background:var(--accent); color:#000;">📥 Mount to Running VM</button>
+                </div>
+            </div>
+            
+            <!-- VIEWPORT WITH KEYBOARD MACRO BAR -->
+            <div style="display: flex; gap: 10px; background: #111; padding: 10px 15px; border-radius: 8px; border: 1px solid #333; justify-content: center; align-items: center; margin-top: 10px;">
+                <span style="font-size:12px; font-weight:bold; color:var(--accent); margin-right: 10px;">⌨️ QUICK MACROS:</span>
+                <button class="lib-btn" style="padding: 6px 12px; font-size: 11px;" onclick="sendMacro('cad')">Ctrl+Alt+Del</button>
+                <button class="lib-btn" style="padding: 6px 12px; font-size: 11px;" onclick="sendMacro('cse')">Task Manager</button>
+                <button class="lib-btn" style="padding: 6px 12px; font-size: 11px;" onclick="sendMacro('winr')">Win+R (Run)</button>
+                <button class="lib-btn" style="padding: 6px 12px; font-size: 11px;" onclick="sendMacro('alttab')">Alt+Tab (Switch Windows)</button>
+                <button class="lib-btn" style="padding: 6px 12px; font-size: 11px; background:rgba(255,0,85,0.2); border-color:var(--danger);" onclick="sendMacro('altf4')">Alt+F4 (Close App)</button>
+            </div>
+            
+            <div id="os-screen" style="margin-top:10px;">
+                <div id="v86-loader">
+                    <div class="spinner"></div>
+                    <div style="display:flex; flex-direction:column;">
+                        <span style="font-size:13px; font-weight:bold; color:var(--accent);">Initializing Hypervisor...</span>
+                        <span style="font-size:11px; color:#aaa;">Heavy OS systems may take a few moments to initialize.</span>
+                        <span id="v86-boot-status" style="font-size:11px; color:var(--success); font-weight:bold; margin-top:4px;"></span>
+                    </div>
+                    <button class="loader-close" title="Dismiss Loader" onclick="document.getElementById('v86-loader').style.display='none'">✖</button>
+                </div>
+
+                <div id="os-screen_container">
+                    <div style="white-space: pre; font: 14px monospace; line-height: 14px; color:#fff;"></div>
+                    <canvas style="display: none"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONSOLE DECK -->
+        <div id="console-engine" class="main-engine active">
+            <div class="controls" style="flex-direction: row; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <label>System Core: </label>
+                    <select id="console-core" onchange="handleCoreChange()">
+                        <option value="auto" style="font-weight:bold; color:var(--accent);">🤖 Auto-Detect System from File</option>
+                        
+                        <optgroup label="🌟 3D Heavy Systems">
+                            <option value="psx">Sony PlayStation 1 (PSX)</option>
+                            <option value="n64">Nintendo 64</option>
+                            <option value="psp">PlayStation Portable (PSP)</option>
+                            <option value="saturn">Sega Saturn</option>
+                            <option value="dreamcast">Sega Dreamcast</option>
+                            <option value="naomi">Sega NAOMI Arcade</option>
+                            <option value="atomiswave">Sammy Atomiswave</option>
+                            <option value="3do">3DO Interactive Multiplayer</option>
+                            <option value="jaguar">Atari Jaguar</option>
+                            <option value="nds">Nintendo DS</option>
+                            <option value="cdi">Philips CD-i</option>
+                        </optgroup>
+                        
+                        <optgroup label="🕹️ Arcade & Coin-Op">
+                            <option value="mame2003">Arcade (MAME 2003)</option>
+                            <option value="fbneo">FinalBurn Neo (Arcade/NeoGeo)</option>
+                            <option value="fba">FinalBurn Alpha</option>
+                            <option value="neogeocd">Neo Geo CD</option>
+                            <option value="neogeo">Neo Geo System</option>
+                            <option value="daphne">Daphne (LaserDisc)</option>
+                        </optgroup>
+                        
+                        <optgroup label="🌐 Nintendo Ecosystem">
+                            <option value="nes">NES / Famicom</option>
+                            <option value="snes">Super Nintendo (SNES)</option>
+                            <option value="gb">Game Boy</option>
+                            <option value="gbc">Game Boy Color</option>
+                            <option value="gba">Game Boy Advance</option>
+                            <option value="vb">Virtual Boy</option>
+                            <option value="famicom_disk">Famicom Disk System</option>
+                            <option value="pokemini">Pokémon Mini</option>
+                            <option value="gameandwatch">Game & Watch</option>
+                        </optgroup>
+                        
+                        <optgroup label="🌀 Sega Ecosystem">
+                            <option value="mastersystem">Sega Master System</option>
+                            <option value="megadrive">Sega Genesis / Mega Drive</option>
+                            <option value="segacd">Sega CD</option>
+                            <option value="sega32x">Sega 32X</option>
+                            <option value="sg1000">Sega SG-1000</option>
+                            <option value="gamegear">Sega Game Gear</option>
+                            <option value="pico">Sega Pico</option>
+                        </optgroup>
+
+                        <optgroup label="👾 Retro PC & Microcomputers">
+                            <option value="amiga">Commodore Amiga / CD32</option>
+                            <option value="c64">Commodore 64</option>
+                            <option value="vic20">Commodore VIC-20</option>
+                            <option value="mac">Apple Macintosh Classic</option>
+                            <option value="apple2">Apple II</option>
+                            <option value="x68000">Sharp X68000</option>
+                            <option value="x1">Sharp X1</option>
+                            <option value="pc88">NEC PC-88</option>
+                            <option value="pc98">NEC PC-98</option>
+                            <option value="fmtowns">Fujitsu FM Towns</option>
+                            <option value="cpc">Amstrad CPC</option>
+                            <option value="msx">MSX / MSX2</option>
+                            <option value="zxspectrum">ZX Spectrum</option>
+                            <option value="zx81">Sinclair ZX81</option>
+                            <option value="scummvm">ScummVM Engine</option>
+                            <option value="dos">MS-DOS</option>
+                        </optgroup>
+                        
+                        <optgroup label="📺 Other Classic Consoles">
+                            <option value="atari2600">Atari 2600</option>
+                            <option value="atari5200">Atari 5200</option>
+                            <option value="atari7800">Atari 7800</option>
+                            <option value="lynx">Atari Lynx</option>
+                            <option value="atarist">Atari ST</option>
+                            <option value="pce">PC Engine / TurboGrafx-16</option>
+                            <option value="pcecd">PC Engine CD</option>
+                            <option value="pcfx">PC-FX</option>
+                            <option value="supergrafx">SuperGrafx</option>
+                            <option value="wswan">WonderSwan / Color</option>
+                            <option value="ngp">Neo Geo Pocket / Color</option>
+                            <option value="vectrex">GCE Vectrex</option>
+                            <option value="colecovision">ColecoVision</option>
+                            <option value="intellivision">Intellivision</option>
+                            <option value="odyssey2">Magnavox Odyssey²</option>
+                            <option value="channelf">Fairchild Channel F</option>
+                            <option value="arcadia2001">Emerson Arcadia 2001</option>
+                            <option value="supervision">Watara Supervision</option>
+                            <option value="uzebox">Uzebox</option>
+                            <option value="tic80">TIC-80 Fantasy Console</option>
+                        </optgroup>
+                        
+                        <optgroup label="🌐 Web / Flash">
+                            <option value="flash">Adobe Flash Player (.swf)</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div><label>ROM: </label><input type="file" id="console-rom" accept=".swf,.nes,.fds,.sfc,.smc,.z64,.n64,.v64,.gb,.gbc,.gba,.nds,.sms,.md,.gen,.smd,.gg,.exe,.zip,.a26,.a52,.a78,.lnx,.pce,.ws,.wsc,.chd,.iso,.cue,.bin,.m3u,.vb,.ngp,.ngc,.j64,.jag,.32x,.sg,.col,.int,.vec,.adf,.tap,.z80,.dim,.hdi,.d88,.mgw,.cdi,.st,.sgx,.uze,.p8,.sv,.dsk,.cas" onchange="autoDetectCore()"></div>
+                
+                <div><label>Cover Art (Opt): </label><input type="file" id="console-cover" accept="image/*"></div>
+
+                <div id="bios-upload-container" style="display:none;">
+                    <label style="color:var(--warn);" title="Required to prevent glitches/crashing for this system!">BIOS File: </label>
+                    <input type="file" id="console-bios" accept=".bin,.rom,.zip" onchange="setConsoleBios(this)" style="border-color:var(--warn);">
+                </div>
+
+                <button onclick="installAndBootConsole()" style="background:var(--success); color:#000;">💾 Install & Play</button>
+                <button onclick="triggerFullscreen('game-iframe')">📺 Fullscreen</button>
+                <span id="install-progress" style="color: var(--success); font-size: 12px; margin-left: 10px; font-weight: bold;"></span>
+            </div>
+            
+            <div style="display:flex; flex:1; gap:15px; min-height:0; margin-top:10px;">
+                <div id="console-screen" style="flex: 1; background: #000; border: 2px solid #333; border-radius: 8px; overflow: hidden; position: relative;">
+                    <iframe id="game-iframe" allow="fullscreen *; gamepad *; autoplay *" style="width: 100%; height: 100%; border: none; background: #000;"></iframe>
+                </div>
+                
+                <div id="controls-sidebar" style="width: 220px; background: var(--panel); border: 2px solid #333; border-radius: 8px; padding: 15px; display: none; flex-direction: column; overflow-y: auto;">
+                    <h3 style="margin-top:0; color:var(--accent); font-size:14px; border-bottom:1px solid #444; padding-bottom:8px;">⌨️ Keybinds</h3>
+                    <div id="controls-list" style="font-size:12px; color:#aaa; line-height:1.8; margin-bottom: 15px;"></div>
+                    
+                    <div style="margin-top:auto; padding:12px; background:rgba(0,255,170,0.05); border:1px solid var(--success); border-radius:6px;">
+                        <strong style="color:var(--success); font-size:11px; display:block; margin-bottom:4px;">🎮 GAMEPAD READY</strong>
+                        <span style="font-size:10px; color:#888; line-height:1.4;">Plug in an Xbox or PlayStation controller via USB or Bluetooth. It will map automatically.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- STORAGE MODAL -->
+    <div id="storage-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin:0; color:var(--accent); border-bottom:1px solid #333; padding-bottom:10px;">💽 System Storage Manager</h2>
+            <div id="storage-list"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span id="total-storage-size" style="font-weight:bold; color:var(--success); font-family:monospace;">Total Space Used: 0.00 MB</span>
+                <button class="close-modal" style="background:#333; color:white;">Close Manager</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULL LIBRARY VIEWER MODAL -->
+    <div id="library-viewer-modal" class="modal">
+        <div class="modal-content viewer-modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="margin:0; color:#fff; text-shadow: 0 0 10px rgba(255,255,255,0.3);">🎮 System Media Library</h2>
+                <div style="display:flex; gap: 15px; align-items:center;">
+                    <button class="close-modal" style="background:rgba(0,0,0,0.5); border:1px solid #555; color:white; padding: 6px 12px; border-radius: 20px; cursor: pointer;">Close XMB</button>
+                </div>
+            </div>
+            
+            <div class="xmb-nav">
+                <button class="xmb-tab active" onclick="filterLibraryView('all', event)">All Titles</button>
+                <button class="xmb-tab fav-tab" onclick="filterLibraryView('favorites', event)">⭐ Favorites</button>
+                <button class="xmb-tab" onclick="filterLibraryView('sony', event)">Sony Ecosystem</button>
+                <button class="xmb-tab" onclick="filterLibraryView('nintendo', event)">Nintendo Ecosystem</button>
+                <button class="xmb-tab" onclick="filterLibraryView('sega', event)">Sega Ecosystem</button>
+                <button class="xmb-tab" onclick="filterLibraryView('arcade', event)">Arcade & NeoGeo</button>
+                <button class="xmb-tab" onclick="filterLibraryView('retro', event)">Atari & Retro PC</button>
+                <button class="xmb-tab" onclick="filterLibraryView('web', event)">Web & Flash</button>
+            </div>
+
+            <div id="full-library-grid" class="viewer-grid"></div>
+        </div>
+    </div>
+
+    <!-- ELECTRON-SAFE CUSTOM PROMPT MODAL -->
+    <div id="custom-prompt" class="modal">
+        <div class="modal-content" style="width: 350px; text-align: center;">
+            <h3 id="prompt-title" style="margin-top:0; color:var(--accent);">Enter Name</h3>
+            <input type="text" id="prompt-input" style="width:100%; box-sizing:border-box; margin-bottom:15px; padding: 10px; font-size: 14px;">
+            <div style="display:flex; justify-content:space-between; gap: 10px;">
+                <button onclick="closePrompt()" style="background:#333; color:white; flex: 1;">Cancel</button>
+                <button onclick="submitPrompt()" style="background:var(--success); color:#000; flex: 1;">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let emulatorInstance = null;
+        window.activeOsUrl = null; 
+        window.activeHddUrl = null; 
+        window.activeGameUrl = null;
+        window.coreUrlsCache = window.coreUrlsCache || {}; 
+        window.consoleBiosFile = null;
+        window.currentViewerFilter = 'all';
+        window.autosaveIntervalId = null;
+        window.bootTrackerInterval = null;
+        
+        const dbName = "MatrixROMVault";
+        let db;
+
+        const CORE_NAMES = {
+            'nes': 'Nintendo Entertainment System', 'snes': 'Super Nintendo', 'n64': 'Nintendo 64',
+            'gb': 'Game Boy', 'gbc': 'Game Boy Color', 'gba': 'Game Boy Advance', 'nds': 'Nintendo DS', 'vb': 'Virtual Boy',
+            'famicom_disk': 'Famicom Disk System', 'pokemini': 'Pokémon Mini', 'gameandwatch': 'Game & Watch',
+            
+            'mastersystem': 'Sega Master System', 'megadrive': 'Sega Genesis', 'saturn': 'Sega Saturn', 
+            'dreamcast': 'Sega Dreamcast', 'segacd': 'Sega CD', 'sega32x': 'Sega 32X', 'sg1000': 'SG-1000',
+            'naomi': 'Sega NAOMI Arcade', 'gamegear': 'Sega Game Gear', 'atomiswave': 'Sammy Atomiswave', 'pico': 'Sega Pico',
+            
+            'psx': 'PlayStation 1 (PSX)', 'psp': 'PlayStation Portable (PSP)',
+            
+            'mame2003': 'Arcade (MAME)', 'fbneo': 'NeoGeo/FBNeo', 'fba': 'FinalBurn Alpha', 'neogeocd': 'Neo Geo CD',
+            'neogeo': 'Neo Geo System', 'daphne': 'Daphne LaserDisc',
+            
+            'atari2600': 'Atari 2600', 'atari5200': 'Atari 5200', 'atari7800': 'Atari 7800', 'lynx': 'Atari Lynx', 'jaguar': 'Atari Jaguar', 'atarist': 'Atari ST',
+            
+            'pce': 'PC Engine', 'pcecd': 'PC Engine CD', 'pcfx': 'PC-FX', 'supergrafx': 'SuperGrafx',
+            'wswan': 'WonderSwan / Color', 'ngp': 'Neo Geo Pocket', '3do': '3DO Multiplayer', 
+            'vectrex': 'Vectrex', 'colecovision': 'ColecoVision', 'intellivision': 'Intellivision', 'odyssey2': 'Magnavox Odyssey²',
+            'channelf': 'Fairchild Channel F', 'arcadia2001': 'Emerson Arcadia 2001', 'supervision': 'Watara Supervision', 'cdi': 'Philips CD-i',
+            
+            'amiga': 'Amiga', 'c64': 'Commodore 64', 'vic20': 'Commodore VIC-20', 'mac': 'Apple Macintosh', 'apple2': 'Apple II',
+            'x68000': 'Sharp X68000', 'x1': 'Sharp X1', 'pc88': 'NEC PC-88', 'pc98': 'NEC PC-98', 'fmtowns': 'FM Towns', 'cpc': 'Amstrad CPC',
+            'scummvm': 'ScummVM Engine', 'msx': 'MSX', 'zxspectrum': 'ZX Spectrum', 'zx81': 'Sinclair ZX81', 'dos': 'MS-DOS', 
+            
+            'tic80': 'TIC-80 Fantasy Console', 'uzebox': 'Uzebox', 'pico8': 'Pico-8',
+            
+            'flash': 'Adobe Flash Player (Ruffle)'
+        };
+
+        const BRAND_MAP = {
+            'sony': ['psx', 'psp'],
+            'nintendo': ['nes', 'snes', 'n64', 'gb', 'gbc', 'gba', 'nds', 'vb', 'famicom_disk', 'pokemini', 'gameandwatch'],
+            'sega': ['mastersystem', 'megadrive', 'saturn', 'dreamcast', 'segacd', 'sega32x', 'sg1000', 'naomi', 'gamegear', 'atomiswave', 'pico'],
+            'arcade': ['mame2003', 'fbneo', 'fba', 'neogeocd', 'neogeo', 'daphne'],
+            'retro': ['atari2600', 'atari5200', 'atari7800', 'lynx', 'jaguar', 'atarist', 'pce', 'pcecd', 'pcfx', 'supergrafx', 'wswan', 'ngp', '3do', 'vectrex', 'colecovision', 'intellivision', 'odyssey2', 'amiga', 'mac', 'x68000', 'x1', 'pc88', 'pc98', 'fmtowns', 'scummvm', 'msx', 'zxspectrum', 'dos', 'c64', 'tic80', 'uzebox', 'pico8', 'vic20', 'channelf', 'zx81', 'arcadia2001', 'supervision', 'cdi', 'apple2', 'cpc'],
+            'web': ['flash']
+        };
+
+        function getBrandClass(core) {
+            for (const [brand, cores] of Object.entries(BRAND_MAP)) {
+                if (cores.includes(core)) return brand;
+            }
+            return 'retro';
+        }
+
+        window.updateControlMappings = function(core) {
+            const list = document.getElementById('controls-list');
+            document.getElementById('controls-sidebar').style.display = 'flex';
+            
+            let map = "";
+            if (core === 'flash') {
+                map = `<b>Mouse:</b> Navigate / Click<br><b>Keyboard:</b> Mapped per SWF app<br><br><i>Note: Flash content controls vary by the original developer.</i>`;
+            } else if (core === 'psx' || core === 'psp') {
+                map = `<b>D-Pad:</b> Arrow Keys<br><b>Cross (X):</b> Z<br><b>Circle (O):</b> X<br><b>Square (□):</b> A<br><b>Triangle (△):</b> S<br><b>L1 / R1:</b> Q / W<br><b>L2 / R2:</b> E / R<br><b>Start:</b> Enter<br><b>Select:</b> Shift`;
+            } else if (['nes', 'snes', 'gb', 'gbc', 'gba', 'nds'].includes(core)) {
+                map = `<b>D-Pad:</b> Arrow Keys<br><b>A Button:</b> X<br><b>B Button:</b> Z<br><b>X Button:</b> S<br><b>Y Button:</b> A<br><b>L / R:</b> Q / W<br><b>Start:</b> Enter<br><b>Select:</b> Shift`;
+            } else if (['n64'].includes(core)) {
+                map = `<b>Analog Stick:</b> Arrow Keys<br><b>A Button:</b> X<br><b>B Button:</b> Z<br><b>Z Trigger:</b> A<br><b>L / R:</b> Q / W<br><b>C-Buttons:</b> I, J, K, L<br><b>Start:</b> Enter`;
+            } else if (['megadrive', 'mastersystem', 'segacd', 'sega32x', 'gamegear', 'saturn'].includes(core)) {
+                map = `<b>D-Pad:</b> Arrow Keys<br><b>A Button:</b> A<br><b>B Button:</b> S<br><b>C Button:</b> D<br><b>X / Y / Z:</b> Q / W / E<br><b>Start:</b> Enter<br><b>Mode/Select:</b> Shift`;
+            } else {
+                map = `<b>D-Pad:</b> Arrow Keys<br><b>Action 1:</b> Z or X<br><b>Action 2:</b> A or S<br><b>Start:</b> Enter<br><b>Select/Coin:</b> Shift<br><br><i>Note: Varies by system.</i>`;
+            }
+            list.innerHTML = map;
+        };
+        
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('close-modal')) {
+                const modal = e.target.closest('.modal');
+                if (modal) modal.style.display = 'none';
+            }
+        });
+
+        const request = indexedDB.open(dbName, 4); // Incremented version safely
+        request.onupgradeneeded = (e) => { 
+            db = e.target.result; 
+            if (e.oldVersion < 1) {
+                db.createObjectStore("games", { keyPath: "id", autoIncrement: true });
+                db.createObjectStore("saves", { keyPath: "gameName" }); 
+            }
+            if (e.oldVersion < 2) {
+                db.createObjectStore("chunks", { autoIncrement: true }); 
+            }
+            if (e.oldVersion < 3) {
+                db.createObjectStore("settings"); 
+            }
+            // Version 4 adds support for favorites and coverarts seamlessly within the same "games" object structure
+        };
+        request.onsuccess = (e) => { 
+            db = e.target.result; 
+            try { renderLibrary(); } catch(err) { console.error("renderLibrary failed", err); }
+            try { renderSnapshots(); } catch(err) { console.error("renderSnapshots failed", err); }
+            try { checkV86Status(); } catch(err) { console.error("checkV86Status failed", err); }
+            try { fillCrossSaveSelectors(); } catch(err) { console.error("crossSave failed", err); }
+            try { loadSettings(); } catch(err) { console.error("loadSettings failed", err); }
+        };
+
+        window.toggleFavorite = function(id, event) {
+            if (event) event.stopPropagation();
+            const tx = db.transaction("games", "readwrite");
+            const store = tx.objectStore("games");
+            store.get(id).onsuccess = (e) => {
+                const item = e.target.result;
+                if(!item) return;
+                item.favorite = !item.favorite;
+                store.put(item).onsuccess = () => {
+                    renderLibrary();
+                    renderSnapshots();
+                    if(document.getElementById('library-viewer-modal').style.display === 'flex') {
+                        filterLibraryView(window.currentViewerFilter);
+                    }
+                };
+            };
+        };
+
+        window.renderLibrary = function() {
+            const list = document.getElementById('game-list');
+            if(!list) return;
+            const activeFilter = document.getElementById('console-core').value;
+            
+            let games = [];
+            db.transaction("games", "readonly").objectStore("games").openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    if (cursor.value.type === 'game') {
+                        if (activeFilter === 'auto' || cursor.value.core === activeFilter) {
+                            games.push(cursor.value);
+                        }
+                    }
+                    cursor.continue();
+                } else {
+                    // Sort optimized for Favorites top
+                    games.sort((a, b) => (b.favorite === true) - (a.favorite === true));
+                    
+                    list.innerHTML = '';
+                    if (games.length === 0) {
+                        list.innerHTML = `<div style="color:#666; font-size:11px; text-align:center; margin-top:10px; font-style:italic;">No ROMs found for the selected core.</div>`;
+                    } else {
+                        games.forEach(game => {
+                            const displayCore = CORE_NAMES[game.core] || game.core.toUpperCase();
+                            const brandColor = `var(--brand-${getBrandClass(game.core)})`;
+                            const favClass = game.favorite ? 'active' : '';
+                            
+                            list.innerHTML += `<div class="lib-item" style="border-left-color: ${brandColor};">
+                                <div class="lib-item-info">
+                                    <span class="lib-title"><button class="fav-btn ${favClass}" onclick="toggleFavorite(${game.id}, event)">★</button> ${game.name}</span>
+                                    <span class="lib-core">${displayCore}</span>
+                                </div>
+                                <div class="lib-actions">
+                                    <button class="lib-btn" style="background:var(--success); color:#000;" onclick="playFromLibrary(${game.id})">▶ Play</button>
+                                    <button class="lib-btn del" onclick="deleteFromStorage(${game.id})">✖</button>
+                                </div>
+                            </div>`;
+                        });
+                    }
+                }
+            };
+        };
+
+        function loadSettings() {
+            db.transaction("settings", "readonly").objectStore("settings").get("allocations").onsuccess = (e) => {
+                if (e.target.result) {
+                    let { ram, cpu, acpi, apic, autosave, perf, gaming } = e.target.result;
+                    if(ram) {
+                        if (ram > 2048) ram = 2048; 
+                        document.getElementById('ram-slider').value = ram;
+                        document.getElementById('ram-val').innerText = ram;
+                    }
+                    if(cpu) {
+                        document.getElementById('cpu-slider').value = cpu;
+                        document.getElementById('cpu-val').innerText = cpu;
+                    }
+                    document.getElementById('toggle-acpi').checked = acpi !== undefined ? acpi : false; 
+                    document.getElementById('toggle-apic').checked = apic !== undefined ? apic : false;
+                    document.getElementById('toggle-autosave').checked = autosave !== undefined ? autosave : true;
+                    document.getElementById('toggle-performance').checked = perf !== undefined ? perf : false;
+                    document.getElementById('toggle-gaming').checked = gaming !== undefined ? gaming : true;
+                } else {
+                    document.getElementById('toggle-acpi').checked = false;
+                    document.getElementById('toggle-apic').checked = false;
+                    document.getElementById('toggle-autosave').checked = true;
+                    document.getElementById('toggle-performance').checked = false;
+                    document.getElementById('toggle-gaming').checked = true;
+                }
+            };
+        }
+
+        window.toggleMode = function(mode) {
+            if(mode === 'perf' && document.getElementById('toggle-performance').checked) {
+                document.getElementById('toggle-gaming').checked = false;
+            } else if(mode === 'gaming' && document.getElementById('toggle-gaming').checked) {
+                document.getElementById('toggle-performance').checked = false;
+            }
+            saveSettings();
+        };
+
+        function saveSettings() {
+            const ram = document.getElementById('ram-slider').value;
+            const cpu = document.getElementById('cpu-slider').value;
+            const acpi = document.getElementById('toggle-acpi').checked;
+            const apic = document.getElementById('toggle-apic').checked;
+            const autosave = document.getElementById('toggle-autosave').checked;
+            const perf = document.getElementById('toggle-performance').checked;
+            const gaming = document.getElementById('toggle-gaming').checked;
+            db.transaction("settings", "readwrite").objectStore("settings").put({ram, cpu, acpi, apic, autosave, perf, gaming}, "allocations");
+        }
+
+        window.updateRamVisual = function(val) {
+            document.getElementById('ram-val').innerText = val;
+        };
+
+        window.updateCpuVisual = function(val) {
+            document.getElementById('cpu-val').innerText = val;
+        };
+
+        window.switchTab = function(tab) {
+            document.getElementById('os-engine').classList.toggle('active', tab === 'os');
+            document.getElementById('console-engine').classList.toggle('active', tab === 'console');
+            document.querySelectorAll('.tab-btn')[0].classList.toggle('active', tab === 'os');
+            document.querySelectorAll('.tab-btn')[1].classList.toggle('active', tab === 'console');
+            
+            document.getElementById('console-sidebar-content').style.display = (tab === 'console') ? 'flex' : 'none';
+            document.getElementById('os-sidebar-content').style.display = (tab === 'os') ? 'flex' : 'none';
+        };
+        
+        window.switchX86Tab = function(sub) {
+            document.getElementById('x86-hw-panel').style.display = (sub === 'hw') ? 'flex' : 'none';
+            document.getElementById('x86-disk-panel').style.display = (sub === 'disk') ? 'flex' : 'none';
+            document.getElementById('tab-hw').classList.toggle('active', sub === 'hw');
+            document.getElementById('tab-disk').classList.toggle('active', sub === 'disk');
+        };
+
+        const savedTab = sessionStorage.getItem('activeTab');
+        if (savedTab) {
+            switchTab(savedTab);
+            sessionStorage.removeItem('activeTab');
+        }
+
+        window.triggerFullscreen = function(elementId) {
+            const el = document.getElementById(elementId);
+            if (el.requestFullscreen) el.requestFullscreen();
+            else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        };
+
+        window.handleCoreChange = function() {
+            const core = document.getElementById('console-core').value;
+            const biosBox = document.getElementById('bios-upload-container');
+            const needsBios = ['psx', 'saturn', 'dreamcast', 'naomi', 'atomiswave', '3do', 'pcecd', 'neogeocd', 'neogeo', 'mac', 'x68000', 'pc88', 'pc98', 'famicom_disk', 'cdi', 'fmtowns', 'atarist', 'segacd', 'amiga', 'apple2'].includes(core);
+            
+            biosBox.style.display = needsBios ? 'block' : 'none';
+            renderLibrary(); 
+        };
+
+        window.setConsoleBios = function(input) {
+            if(input.files.length) {
+                window.consoleBiosFile = input.files[0];
+            }
+        };
+
+        window.autoDetectCore = function() {
+            const fileInput = document.getElementById('console-rom');
+            const coreSelect = document.getElementById('console-core');
+            if (!fileInput.files.length) return;
+            const file = fileInput.files[0];
+            const ext = file.name.split('.').pop().toLowerCase();
+            
+            const extMap = { 
+                'swf': 'flash',
+                'nes': 'nes', 'fds': 'famicom_disk', 'sfc': 'snes', 'smc': 'snes', 'z64': 'n64', 'n64': 'n64', 'v64': 'n64', 'vb': 'vb',
+                'gb': 'gb', 'gbc': 'gbc', 'gba': 'gba', 'nds': 'nds', 'sms': 'mastersystem', 'md': 'megadrive', 
+                'gen': 'megadrive', 'smd': 'megadrive', '32x': 'sega32x', 'gg': 'gamegear', 'exe': 'dos', 'zip': 'mame2003',
+                'a26': 'atari2600', 'a52': 'atari5200', 'a78': 'atari7800', 'lnx': 'lynx', 'jag': 'jaguar', 'j64': 'jaguar',
+                'pce': 'pce', 'ws': 'wswan', 'wsc': 'wswan', 'ngp': 'ngp', 'ngc': 'ngp',
+                'sg': 'sg1000', 'col': 'colecovision', 'int': 'intellivision', 'vec': 'vectrex',
+                'adf': 'amiga', 'tap': 'zxspectrum', 'z80': 'zxspectrum', 'tic': 'tic80', 'dim': 'x68000', 'hdi': 'pc98', 'd88': 'pc88',
+                'mgw': 'gameandwatch', 'cdi': 'cdi', 'st': 'atarist', 'sgx': 'supergrafx', 'uze': 'uzebox', 'p8': 'pico8', 'sv': 'supervision'
+            };
+            
+            const sharedCDFormats = ['chd', 'iso', 'cue', 'bin', 'm3u', 'dsk', 'cas'];
+
+            if (extMap[ext]) {
+                coreSelect.value = extMap[ext];
+                handleCoreChange(); 
+            } else if (sharedCDFormats.includes(ext) && coreSelect.value === 'auto') {
+                alert(`The file format ".${ext.toUpperCase()}" is a multi-disc or shared format. Please select the correct Hardware Console from the dropdown manually.`);
+            }
+        };
+
+        window.fillCrossSaveSelectors = function() {
+            const srcSel = document.getElementById('src-link-game');
+            const destSel = document.getElementById('dest-link-game');
+            srcSel.innerHTML = '<option value="">Select source game...</option>';
+            destSel.innerHTML = '<option value="">Select target game...</option>';
+            db.transaction("games", "readonly").objectStore("games").openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    if (cursor.value.type === 'game') {
+                        const optHtml = `<option value="${cursor.value.name}">${cursor.value.name}</option>`;
+                        srcSel.innerHTML += optHtml; destSel.innerHTML += optHtml;
+                    }
+                    cursor.continue();
+                }
+            };
+        };
+
+        window.executeCrossSaveSync = function() {
+            const src = document.getElementById('src-link-game').value;
+            const dest = document.getElementById('dest-link-game').value;
+            if(!src || !dest || src === dest) return alert("Select valid and discrete entries.");
+            const tx = db.transaction("saves", "readwrite");
+            tx.objectStore("saves").get(src).onsuccess = (e) => {
+                const srcSave = e.target.result;
+                if(!srcSave) return alert("No virtual save state database entry exists yet.");
+                tx.objectStore("saves").put({ gameName: dest, srmData: srcSave.srmData });
+                tx.oncomplete = () => alert("Cross save data sync successful.");
+            };
+        };
+
+        window.openStorageManager = function() {
+            document.getElementById('storage-modal').style.display = 'flex';
+            const list = document.getElementById('storage-list'); list.innerHTML = ''; let totalSize = 0;
+            db.transaction("games", "readonly").objectStore("games").openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    const item = cursor.value; let sizeMb = '0.00';
+                    if (item.isChunked && item.totalSize) { sizeMb = (item.totalSize / (1024*1024)).toFixed(2); totalSize += item.totalSize; }
+                    else if (item.data && item.data.size) { sizeMb = (item.data.size / (1024*1024)).toFixed(2); totalSize += item.data.size; } 
+                    else if (item.data && item.data.byteLength) { sizeMb = (item.data.byteLength / (1024*1024)).toFixed(2); totalSize += item.data.byteLength; }
+                    
+                    let tag = item.type === 'os_state' ? 'OS SNAPSHOT' : (item.type === 'system' ? 'SYSTEM CORE' : (CORE_NAMES[item.core] || item.core || 'SYSTEM'));
+                    let brandColor = item.type === 'os_state' ? '#888' : (item.type === 'system' ? 'var(--accent)' : `var(--brand-${getBrandClass(item.core)})`);
+                    
+                    list.innerHTML += `<div class="storage-item" style="border-left: 4px solid ${brandColor};"><div><strong>${item.name}</strong><br><small>${tag}</small> (${sizeMb} MB)</div><button style="background:var(--danger);" onclick="deleteFromStorage(${item.id})">Delete</button></div>`;
+                    cursor.continue();
+                } else {
+                    document.getElementById('total-storage-size').innerText = `Total Space Used: ${(totalSize / (1024*1024)).toFixed(2)} MB`;
+                }
+            };
+        };
+        
+        window.openLibraryViewer = function() {
+            document.getElementById('library-viewer-modal').style.display = 'flex';
+            filterLibraryView(window.currentViewerFilter);
+        };
+
+        window.filterLibraryView = function(brandFilter, eventOpt) {
+            window.currentViewerFilter = brandFilter;
+            
+            document.querySelectorAll('.xmb-tab').forEach(tab => tab.classList.remove('active'));
+            if (eventOpt && eventOpt.target) {
+                eventOpt.target.classList.add('active');
+            } else {
+                const targetBtn = Array.from(document.querySelectorAll('.xmb-tab')).find(el => {
+                    if (brandFilter === 'favorites') return el.classList.contains('fav-tab');
+                    if (brandFilter === 'all') return el.innerText.includes('All Titles');
+                    return el.innerText.toLowerCase().includes(brandFilter);
+                });
+                if(targetBtn) targetBtn.classList.add('active');
+            }
+
+            const grid = document.getElementById('full-library-grid'); 
+            
+            let games = [];
+            db.transaction("games", "readonly").objectStore("games").openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    if (cursor.value.type === 'game') {
+                        const brand = getBrandClass(cursor.value.core);
+                        if (brandFilter === 'all' || (brandFilter === 'favorites' && cursor.value.favorite) || brand === brandFilter) {
+                            games.push(cursor.value);
+                        }
+                    }
+                    cursor.continue();
+                } else {
+                    // Optimized sorting for viewer
+                    games.sort((a, b) => (b.favorite === true) - (a.favorite === true));
+                    
+                    grid.innerHTML = '';
+                    games.forEach(game => {
+                        const displayCore = CORE_NAMES[game.core] || game.core.toUpperCase();
+                        let sizeMb = '0.00';
+                        if (game.isChunked && game.totalSize) sizeMb = (game.totalSize / (1024*1024)).toFixed(2);
+                        else if (game.data && game.data.size) sizeMb = (game.data.size / (1024*1024)).toFixed(2);
+                        
+                        const brand = getBrandClass(game.core);
+                        const favClass = game.favorite ? 'active' : '';
+                        let coverHtml = game.coverBase64 ? `<img src="${game.coverBase64}" class="viewer-cover" alt="Cover Art">` : '';
+
+                        grid.innerHTML += `
+                            <div class="viewer-card ${brand}">
+                                <button class="fav-btn ${favClass}" style="position:absolute; top: 10px; right: 10px; z-index: 5; font-size: 20px; background: rgba(0,0,0,0.6); padding: 4px; border-radius: 50%; width: 32px; height: 32px; text-align: center; border: 1px solid rgba(255,255,255,0.1);" onclick="toggleFavorite(${game.id}, event)">★</button>
+                                ${coverHtml}
+                                <div>
+                                    <h4 style="margin:0 0 5px 0; color:#fff; font-size:14px; word-break: break-all; text-shadow: 0 2px 4px rgba(0,0,0,0.8); padding-right: 30px;">${game.name}</h4>
+                                    <span style="font-size:11px; color:#aaa; font-weight:bold;">${displayCore}</span><br>
+                                    <span style="font-size:11px; color:#666;">SIZE: ${sizeMb} MB</span>
+                                </div>
+                                <div style="display:flex; gap:10px; margin-top:auto; padding-top: 10px;">
+                                    <button style="flex:1; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff;" onmouseover="this.style.background='var(--success)'; this.style.color='#000';" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.color='#fff';" onclick="playFromLibrary(${game.id}); document.getElementById('library-viewer-modal').style.display='none';">▶ PLAY</button>
+                                    <button style="flex:1; background:transparent; border:1px solid rgba(255,0,85,0.5); color:var(--danger);" onmouseover="this.style.background='var(--danger)'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='var(--danger)';" onclick="deleteFromStorage(${game.id});">DELETE</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            };
+        };
+
+        window.deleteFromStorage = function(id) {
+            if(!confirm("Erase entry permanently?")) return;
+            const txGet = db.transaction("games", "readonly");
+            txGet.objectStore("games").get(id).onsuccess = (e) => {
+                const game = e.target.result;
+                if (!game) return;
+                
+                if (game.isChunked) {
+                    const txChunks = db.transaction("chunks", "readwrite");
+                    txChunks.objectStore("chunks").openCursor().onsuccess = (ev) => {
+                        const cursor = ev.target.result;
+                        if (cursor) { 
+                            if (cursor.value.gameId === id) cursor.delete(); 
+                            cursor.continue(); 
+                        }
+                    };
+                }
+                const txDel = db.transaction("games", "readwrite");
+                txDel.objectStore("games").delete(id);
+                txDel.oncomplete = () => { 
+                    renderLibrary(); 
+                    renderSnapshots(); 
+                    checkV86Status(); 
+                    fillCrossSaveSelectors(); 
+                    
+                    if(document.getElementById('storage-modal').style.display === 'flex') openStorageManager();
+                    if(document.getElementById('library-viewer-modal').style.display === 'flex') filterLibraryView(window.currentViewerFilter);
+                };
+            };
+        };
+
+        let promptCallback = null;
+        window.customPrompt = function(title, defaultText, callback) {
+            document.getElementById('prompt-title').innerText = title;
+            const input = document.getElementById('prompt-input');
+            input.value = defaultText || '';
+            document.getElementById('custom-prompt').style.display = 'flex';
+            input.focus();
+            promptCallback = callback;
+        };
+        window.closePrompt = function() {
+            document.getElementById('custom-prompt').style.display = 'none';
+            if(promptCallback) promptCallback(null);
+            promptCallback = null;
+        };
+        window.submitPrompt = function() {
+            const val = document.getElementById('prompt-input').value;
+            document.getElementById('custom-prompt').style.display = 'none';
+            if(promptCallback) promptCallback(val);
+            promptCallback = null;
+        };
+        document.getElementById('prompt-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') submitPrompt();
+        });
+
+        window.renderSnapshots = function() {
+            const list = document.getElementById('snapshot-list'); 
+            if(!list) return;
+            list.innerHTML = '';
+            
+            let items = [];
+            db.transaction("games", "readonly").objectStore("games").openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    if (cursor.value.type === 'os_state') items.push(cursor.value);
+                    cursor.continue();
+                } else {
+                    items.sort((a, b) => (b.favorite === true) - (a.favorite === true));
+                    
+                    if (items.length === 0) {
+                        list.innerHTML = '<div style="color:#666; font-size:11px; text-align:center; margin-top:20px;">No snapshots captured.</div>';
+                        return;
+                    }
+                    
+                    items.forEach(item => {
+                        let sizeMb = item.data && item.data.byteLength ? (item.data.byteLength / (1024*1024)).toFixed(2) : (item.data && item.data.size ? (item.data.size / (1024*1024)).toFixed(2) : '0.00');
+                        let isAutosave = (item.name === 'AUTOSAVE_X86');
+                        let delBtnText = isAutosave ? '🗑️ Delete Autosave' : '✖';
+                        let delBtnStyle = isAutosave ? 'flex:1; border-color:var(--danger); background:rgba(255,0,85,0.1);' : 'flex:1;';
+                        const favClass = item.favorite ? 'active' : '';
+
+                        list.innerHTML += `
+                            <div class="lib-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                                <div class="lib-item-info">
+                                    <span class="lib-title" style="color:${isAutosave?'var(--warn)':'var(--success)'}; font-size: 13px;">
+                                        <button class="fav-btn ${favClass}" onclick="toggleFavorite(${item.id}, event)">★</button> ${item.name}
+                                    </span>
+                                    <span class="lib-core" style="color:#aaa;">${sizeMb} MB SNAPSHOT</span>
+                                </div>
+                                <div class="lib-actions" style="display:flex; gap:5px; flex-wrap: wrap;">
+                                    <button class="lib-btn" style="background:var(--success); color:#000; flex:1;" onclick="loadOSState(${item.id})">▶ Load</button>
+                                    <button class="lib-btn" style="flex:1;" onclick="overwriteOSState(${item.id})">💾 Save</button>
+                                    <button class="lib-btn" style="flex:1; border-color:var(--accent); color:var(--accent);" onclick="cloneOSState(${item.id}, '${item.name.replace(/'/g, "\\'")}')">🧬 Clone</button>
+                                </div>
+                                <div class="lib-actions" style="display:flex; gap:5px; flex-wrap: wrap;">
+                                    <button class="lib-btn" style="flex:1; border-color:var(--warn); color:var(--warn);" onclick="renameOSState(${item.id}, '${item.name.replace(/'/g, "\\'")}')">✏️ Rename</button>
+                                    <button class="lib-btn" style="flex:1; border-color:#888;" onclick="exportOSState(${item.id})">📤 Export</button>
+                                    <button class="lib-btn del" style="${delBtnStyle}" onclick="deleteFromStorage(${item.id})">${delBtnText}</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            };
+        };
+
+        window.createNewOSState = async function() {
+            if (!emulatorInstance) return alert("You must Boot a machine before you can capture its state.");
+            customPrompt("Enter a name for this snapshot:", "", async (name) => {
+                if (!name) return;
+                const stateBlob = await emulatorInstance.save_state();
+                const tx = db.transaction("games", "readwrite");
+                tx.objectStore("games").put({ name: name, type: 'os_state', data: stateBlob, favorite: false });
+                tx.oncomplete = () => { alert("Snapshot captured."); renderSnapshots(); };
+            });
+        };
+
+        window.overwriteOSState = async function(id) {
+            if (!emulatorInstance) return alert("You must Boot a machine before you can save state.");
+            if (!confirm("Overwrite this snapshot with the current machine memory?")) return;
+            const stateBlob = await emulatorInstance.save_state();
+            
+            db.transaction("games", "readonly").objectStore("games").get(id).onsuccess = (e) => {
+                const item = e.target.result;
+                if (!item) return;
+                item.data = stateBlob;
+                const tx = db.transaction("games", "readwrite");
+                tx.objectStore("games").put(item);
+                tx.oncomplete = () => { alert("Snapshot overwritten successfully."); renderSnapshots(); };
+            };
+        };
+
+        window.loadOSState = async function(id) {
+            if (!emulatorInstance) return alert("You must Boot the exact ISO/Drive first to establish hardware boundaries before injecting a state.");
+            db.transaction("games", "readonly").objectStore("games").get(id).onsuccess = (e) => {
+                const item = e.target.result;
+                if (item && item.data) {
+                    try {
+                        emulatorInstance.restore_state(item.data);
+                        alert(`State '${item.name}' restored successfully.`);
+                    } catch (err) {
+                        alert("Failed to restore state. The booted ISO configuration might not match the snapshot hardware.");
+                    }
+                }
+            };
+        };
+
+        window.cloneOSState = function(id, name) {
+            db.transaction("games", "readonly").objectStore("games").get(id).onsuccess = (e) => {
+                const item = e.target.result;
+                if (!item) return;
+                customPrompt("Name for cloned snapshot:", name + " (Clone)", (newName) => {
+                    if (!newName) return;
+                    const tx = db.transaction("games", "readwrite");
+                    tx.objectStore("games").put({ name: newName, type: 'os_state', data: item.data, favorite: item.favorite });
+                    tx.oncomplete = () => { renderSnapshots(); };
+                });
+            };
+        };
+
+        window.renameOSState = function(id, oldName) {
+            customPrompt("Enter new name for this snapshot:", oldName, (newName) => {
+                if (!newName || newName === oldName) return;
+                const tx = db.transaction("games", "readwrite");
+                const store = tx.objectStore("games");
+                store.get(id).onsuccess = (e) => {
+                    const item = e.target.result;
+                    if (!item) return;
+                    item.name = newName;
+                    store.put(item).onsuccess = () => renderSnapshots();
+                };
+            });
+        };
+
+        window.exportOSState = function(id) {
+            db.transaction("games", "readonly").objectStore("games").get(id).onsuccess = (e) => {
+                const item = e.target.result;
+                if (!item || !item.data) return alert("Failed to locate state data.");
+                
+                let blobData = item.data;
+                if (!(item.data instanceof Blob)) {
+                    blobData = new Blob([item.data], { type: 'application/octet-stream' });
+                }
+                
+                const url = URL.createObjectURL(blobData);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (item.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()) + "_snapshot.bin";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+        };
+
+        window.importOSState = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const defaultName = file.name.replace('.bin', '');
+            customPrompt("Name for imported snapshot:", defaultName, (name) => {
+                if (!name) {
+                    event.target.value = ''; 
+                    return;
+                }
+                
+                const tx = db.transaction("games", "readwrite");
+                tx.objectStore("games").put({ name: name, type: 'os_state', data: file, favorite: false });
+                tx.oncomplete = () => { 
+                    alert("Snapshot imported successfully."); 
+                    renderSnapshots(); 
+                    event.target.value = ''; 
+                };
+            });
+        };
+
+        // --- HARD DRIVE EXPORTER ---
+        window.exportHDD = function() {
+            if (!emulatorInstance) return alert("You must boot the VM first before exporting the hard drive!");
+            emulatorInstance.get_disk_image("hda", (err, data) => {
+                if (err || !data) return alert("Failed to extract hard drive image. Make sure a Target HDD was actually mounted!");
+                const blob = new Blob([data], { type: "application/octet-stream" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "VirtualDisk_Export.img";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                alert("Hard drive image exported successfully to your local machine!");
+            });
+        };
+
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        window.installAndBootConsole = async function() {
+            const core = document.getElementById('console-core').value;
+            const fileInput = document.getElementById('console-rom');
+            const coverInput = document.getElementById('console-cover');
+            
+            if (core === 'auto' || !fileInput.files.length) return alert("Select core and file parameters.");
+            
+            const file = fileInput.files[0]; 
+            const CHUNK_SIZE = 400 * 1024 * 1024;
+            const progressEl = document.getElementById('install-progress');
+
+            let coverBase64 = null;
+            if (coverInput.files.length) {
+                try {
+                    coverBase64 = await getBase64(coverInput.files[0]);
+                } catch(e) { console.warn("Cover art import failed"); }
+            }
+
+            if (file.size > CHUNK_SIZE) {
+                progressEl.innerText = "Heavy ROM Slicer active...";
+                const tx = db.transaction("games", "readwrite");
+                const req = tx.objectStore("games").put({ name: file.name, core: core, type: 'game', isChunked: true, totalSize: file.size, coverBase64: coverBase64, favorite: false });
+                req.onsuccess = async (e) => {
+                    const gameId = e.target.result; let offset = 0; let chunkIndex = 0;
+                    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+                    while (offset < file.size) {
+                        progressEl.innerText = `Slicing Chunk ${chunkIndex + 1}/${totalChunks}...`;
+                        const chunk = file.slice(offset, offset + CHUNK_SIZE);
+                        await saveChunk(gameId, chunkIndex, chunk); offset += CHUNK_SIZE; chunkIndex++;
+                    }
+                    progressEl.innerText = ""; renderLibrary(); fillCrossSaveSelectors(); playFromLibrary(gameId); fileInput.value = ''; coverInput.value = '';
+                };
+                return;
+            }
+            const tx = db.transaction("games", "readwrite");
+            const req = tx.objectStore("games").put({ name: file.name, core: core, type: 'game', data: file, isChunked: false, coverBase64: coverBase64, favorite: false });
+            req.onsuccess = (e) => { renderLibrary(); fillCrossSaveSelectors(); playFromLibrary(e.target.result); fileInput.value = ''; coverInput.value = ''; };
+        };
+
+        window.saveChunk = function(gameId, chunkIndex, chunkData) {
+            return new Promise((resolve) => {
+                const tx = db.transaction("chunks", "readwrite"); 
+                tx.objectStore("chunks").put({ gameId, chunkIndex, data: chunkData }); 
+                tx.oncomplete = resolve;
+            });
+        };
+
+        window.playFromLibrary = function(id) {
+            db.transaction("games", "readonly").objectStore("games").get(id).onsuccess = (e) => {
+                const game = e.target.result; if(!game) return;
+                
+                if (game.isChunked) {
+                    const chunks = [];
+                    db.transaction("chunks", "readonly").objectStore("chunks").openCursor().onsuccess = (ev) => {
+                        const cursor = ev.target.result;
+                        if (cursor) { if (cursor.value.gameId === id) chunks.push(cursor.value); cursor.continue(); }
+                        else { chunks.sort((a,b)=>a.chunkIndex-b.chunkIndex); launchCore(game.core, new Blob(chunks.map(c=>c.data)), game.id, game.name); }
+                    };
+                } else { launchCore(game.core, game.data, game.id, game.name); }
+            };
+        };
+
+        window.launchCore = async function(core, fileBlob, gameId, gameName) {
+            updateControlMappings(core); // <--- Triggers Keybinds UI Sidebar
+            
+            if (window.activeGameUrl) {
+                URL.revokeObjectURL(window.activeGameUrl);
+            }
+            window.activeGameUrl = URL.createObjectURL(fileBlob);
+            const url = window.activeGameUrl;
+            
+            const safeName = gameName.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            const container = document.getElementById('console-screen');
+            container.innerHTML = '<iframe id="game-iframe" allow="fullscreen *; gamepad *; autoplay *" style="width: 100%; height: 100%; border: none; background: #000;"></iframe>';
+            const iframe = document.getElementById('game-iframe');
+
+            // WebAssembly Flash Emulation Route
+            if (core === 'flash') {
+                const emuContent = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <style>body, html { margin:0; padding:0; background:#000; width:100%; height:100%; overflow:hidden; }</style>
+                    </head>
+                    <body>
+                        <div id="container" style="width:100%; height:100%;"></div>
+                        <script src="https://unpkg.com/@ruffle-rs/ruffle"><\/script>
+                        <script>
+                            window.RufflePlayer = window.RufflePlayer || {};
+                            window.addEventListener("load", (event) => {
+                                let interval = setInterval(() => {
+                                    if (window.RufflePlayer.newest) {
+                                        clearInterval(interval);
+                                        const ruffle = window.RufflePlayer.newest();
+                                        const player = ruffle.createPlayer();
+                                        const container = document.getElementById("container");
+                                        container.appendChild(player);
+                                        player.style.width = "100%";
+                                        player.style.height = "100%";
+                                        player.load("${url}");
+                                    }
+                                }, 100);
+                            });
+                        <\/script>
+                    </body>
+                    </html>
+                `;
+                const doc = iframe.contentWindow.document;
+                doc.open();
+                doc.write(emuContent);
+                doc.close();
+                iframe.focus();
+                return;
+            }
+
+            // Standard EmulatorJS Route
+            let biosString = '';
+            if (window.consoleBiosFile) {
+                const biosUrl = URL.createObjectURL(window.consoleBiosFile);
+                biosString = `window.EJS_biosUrl = '${biosUrl}';`;
+            }
+            
+            const perfToggle = document.getElementById('toggle-performance').checked;
+            
+            // SMART THREADING FIX: Enable multi-threading ONLY for heavy 3D consoles to fix audio lag, keep disabled for retro 2D
+            const heavyCores = ['psx', 'n64', 'psp', 'saturn', 'dreamcast', 'naomi', 'atomiswave', '3do', 'jaguar', 'nds'];
+            const useThreads = heavyCores.includes(core);
+            const threadConfig = useThreads ? `window.EJS_threads = true;` : `window.EJS_threads = false;`;
+            const fastForward = perfToggle ? `window.EJS_fastforward = true; window.EJS_disableDatatracker = true;` : `window.EJS_disableDatatracker = true;`;
+
+            const emuContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>body, html { margin:0; padding:0; background:#000; width:100%; height:100%; overflow:hidden; }</style>
+                </head>
+                <body>
+                    <div id="game" style="width:100%; height:100%;"></div>
+                    <script>
+                        window.EJS_player = '#game'; 
+                        window.EJS_core = '${core}'; 
+                        window.EJS_gameUrl = '${url}';
+                        window.EJS_pathtodata = 'https://cdn.emulatorjs.org/latest/data/';
+                        
+                        window.EJS_gameID = 'game_${gameId || Date.now()}'; 
+                        window.EJS_gameName = '${safeName}';
+                        
+                        ${threadConfig}
+                        ${fastForward}
+                        ${biosString}
+                        
+                        window.EJS_mouse = true; 
+                        window.EJS_gamepad = true; 
+                        window.EJS_multitap = true;
+                    <\/script>
+                    <script src="https://cdn.emulatorjs.org/latest/data/loader.js"><\/script>
+                </body>
+                </html>
+            `;
+            
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(emuContent);
+            doc.close();
+            iframe.focus();
+        };
+
+        window.saveV86Core = function(type) {
+            const fileInput = document.getElementById(`v86-${type}`);
+            const file = fileInput.files[0]; 
+            if(!file) return alert("File parameter missing. Please select a file first.");
+            
+            if (type === 'vga' && file.size > 262144) {
+                if(!confirm("Warning: This VGA BIOS file looks surprisingly large (>256KB). Inject anyway?")) return;
+            }
+            if (type === 'bios' && file.size > 1048576) {
+                if(!confirm("Warning: This System BIOS file looks surprisingly large (>1MB). Inject anyway?")) return;
+            }
+
+            let foundId = null;
+            db.transaction("games", "readonly").objectStore("games").openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) { 
+                    if(cursor.value.type === 'system' && cursor.value.coreType === type) {
+                        foundId = cursor.value.id;
+                    }
+                    cursor.continue(); 
+                } else {
+                    if (foundId) {
+                        if (!confirm(`You already have a ${type.toUpperCase()} file injected.\nDo you want to replace it with this new one?`)) {
+                            fileInput.value = '';
+                            return;
+                        }
+                        db.transaction("games", "readwrite").objectStore("games").delete(foundId).onsuccess = () => insertCore();
+                    } else {
+                        insertCore();
+                    }
+                }
+            };
+
+            function insertCore() {
+                const tx = db.transaction("games", "readwrite");
+                tx.objectStore("games").put({ name: `v86_${type}_sys`, type: 'system', coreType: type, data: file, favorite: false });
+                tx.oncomplete = () => { 
+                    alert(`${type.toUpperCase()} core injected successfully.`); 
+                    checkV86Status(); 
+                    fileInput.value = ''; 
+                };
+            }
+        };
+
+        window.checkV86Status = function() {
+            let found = {};
+            db.transaction("games", "readonly").objectStore("games").openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) { 
+                    if(cursor.value.type === 'system') {
+                        found[cursor.value.coreType] = true;
+                    }
+                    cursor.continue(); 
+                }
+                else {
+                    ['wasm','bios','vga'].forEach(t => { 
+                        const el = document.getElementById(`stat-${t}`); 
+                        if(el) { 
+                            el.innerText = found[t] ? "🟢 READY" : "🔴 MISSING"; 
+                            el.className = found[t] ? "sys-status status-ready" : "sys-status status-missing"; 
+                        }
+                    });
+                }
+            };
+        };
+
+        window.bootOS = async function() {
+            let coreFiles = {};
+            
+            await new Promise(r => {
+                db.transaction("games", "readonly").objectStore("games").openCursor().onsuccess = (e) => {
+                    const c = e.target.result; 
+                    if(c) { 
+                        if(c.value.type==='system') {
+                            coreFiles[c.value.coreType] = c.value.data; 
+                        }
+                        c.continue(); 
+                    } else r();
+                }
+            });
+            
+            if(!coreFiles.wasm || !coreFiles.bios || !coreFiles.vga) {
+                return alert("🛑 BOOT SEQUENCE HALTED 🛑\n\nThe x86 Workstation cannot boot because its physical hardware definitions are missing.\n\nYou MUST download and inject all three core files into the top grid before you can boot an OS.");
+            }
+
+            const file = document.getElementById('os-file').files[0]; 
+            const hddFile = document.getElementById('hdd-file').files[0];
+            
+            if(!file && !hddFile) return alert("You must select at least a Boot Media (ISO) or a Target HDD to boot.");
+            
+            if (emulatorInstance) stopOS();
+            
+            let ramValue = parseInt(document.getElementById('ram-slider').value, 10);
+            if (ramValue > 2048) {
+                console.warn("WASM RAM capped. Forcing RAM to 2048MB to prevent ArrayBuffer OOM crash.");
+                ramValue = 2048; 
+            }
+            
+            document.getElementById('v86-loader').style.display = 'flex';
+            
+            if (window.activeOsUrl) { URL.revokeObjectURL(window.activeOsUrl); window.activeOsUrl = null; }
+            if (window.activeHddUrl) { URL.revokeObjectURL(window.activeHddUrl); window.activeHddUrl = null; }
+
+            const biosBuffer = await coreFiles.bios.arrayBuffer();
+            const vgaBuffer = await coreFiles.vga.arrayBuffer();
+
+            if (!window.coreUrlsCache.wasm) window.coreUrlsCache.wasm = URL.createObjectURL(coreFiles.wasm);
+            
+            if (file) window.activeOsUrl = URL.createObjectURL(file);
+            if (hddFile) window.activeHddUrl = URL.createObjectURL(hddFile);
+
+            const acpiToggle = document.getElementById('toggle-acpi').checked;
+            const apicToggle = document.getElementById('toggle-apic').checked;
+            const perfToggle = document.getElementById('toggle-performance').checked;
+            const gamingToggle = document.getElementById('toggle-gaming').checked;
+
+            let vgaMem = 8 * 1024 * 1024;
+            let disableSpk = false;
+
+            if (perfToggle) {
+                vgaMem = 32 * 1024 * 1024; 
+                disableSpk = true; 
+            } else if (gamingToggle) {
+                vgaMem = 32 * 1024 * 1024; 
+                disableSpk = false; 
+            }
+
+            const cfg = { 
+                wasm_path: window.coreUrlsCache.wasm, 
+                bios: { buffer: biosBuffer }, 
+                vga_bios: { buffer: vgaBuffer }, 
+                
+                memory_size: ramValue * 1024 * 1024,      
+                vga_memory_size: vgaMem,   
+                disable_speaker: disableSpk,
+                
+                screen_container: document.getElementById("os-screen_container"), 
+                autostart: true, 
+                preserve_aspect_ratio: true, 
+                mouse_state: true, 
+                listen_to_mouse_clicks: true, 
+                fs_throttle_bad_ticks: true,
+                
+                acpi: acpiToggle, 
+                apic: apicToggle  
+            };
+            
+            if (file) {
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (ext === 'iso') cfg.cdrom = { url: window.activeOsUrl, async: true, size: file.size }; 
+                else if (['img','fd','dsk','raw'].includes(ext)) cfg.fda = { url: window.activeOsUrl, async: true, size: file.size }; 
+                else cfg.hda = { url: window.activeOsUrl, async: true, size: file.size };
+            }
+            if (hddFile) {
+                cfg.hda = { url: window.activeHddUrl, async: true, size: hddFile.size };
+            }
+            
+            try {
+                emulatorInstance = new window.V86(cfg);
+            } catch (err) {
+                console.error(err);
+                alert("Fatal Hypervisor Crash: Your browser couldn't allocate enough memory for v86. Try lowering the RAM slider slightly.");
+                document.getElementById('v86-loader').style.display = 'none';
+                return;
+            }
+
+            if (window.bootTrackerInterval) clearInterval(window.bootTrackerInterval);
+            let lastBytesRead = 0;
+            
+            window.bootTrackerInterval = setInterval(() => {
+                if (!emulatorInstance) {
+                    clearInterval(window.bootTrackerInterval);
+                    return;
+                }
+                try {
+                    const stats = emulatorInstance.get_statistics();
+                    if (stats && stats.cdrom) {
+                        const totalBytes = stats.cdrom.bytes_read || 0;
+                        const totalMB = (totalBytes / 1048576).toFixed(2);
+                        const speed = ((totalBytes - lastBytesRead) / 1048576).toFixed(2);
+                        lastBytesRead = totalBytes;
+                        
+                        const statusEl = document.getElementById('v86-boot-status');
+                        if (statusEl) {
+                            if (speed > 0) statusEl.innerText = `💿 Reading disc: ${totalMB} MB loaded (${speed} MB/s)`;
+                            else statusEl.innerText = `⏳ Unpacking files / Processing instructions... (${totalMB} MB loaded)`;
+                        }
+                    }
+                } catch(e) { }
+            }, 1000);
+            
+            emulatorInstance.add_listener("emulator-ready", function() {
+                setTimeout(() => {
+                    document.getElementById('v86-loader').style.display = 'none';
+                }, 10000);
+            });
+
+            if (document.getElementById('toggle-autosave').checked) {
+                if (window.autosaveIntervalId) clearInterval(window.autosaveIntervalId);
+                window.autosaveIntervalId = setInterval(async () => {
+                    if (emulatorInstance && typeof emulatorInstance.save_state === 'function') {
+                        try {
+                            const stateBlob = await emulatorInstance.save_state();
+                            const tx = db.transaction("games", "readwrite");
+                            const store = tx.objectStore("games");
+                            let found = false;
+                            
+                            const getReq = store.openCursor();
+                            getReq.onsuccess = (e) => {
+                                const cursor = e.target.result;
+                                if (cursor) {
+                                    if(cursor.value.type === 'os_state' && cursor.value.name === 'AUTOSAVE_X86') {
+                                        let item = cursor.value;
+                                        item.data = stateBlob;
+                                        store.put(item);
+                                        found = true;
+                                        renderSnapshots();
+                                    } else {
+                                        cursor.continue();
+                                    }
+                                } else {
+                                    if(!found) store.put({ name: 'AUTOSAVE_X86', type: 'os_state', data: stateBlob, favorite: false }).onsuccess = () => renderSnapshots();
+                                }
+                            }
+                        } catch(e) { console.warn("Autosave skipped this cycle.", e); }
+                    }
+                }, 60000); // 60s asynchronous persistence
+            }
+        };
+
+        window.stopOS = function() { 
+            if (emulatorInstance) { 
+                if (confirm("Power off the workstation?")) {
+                    if (window.autosaveIntervalId) clearInterval(window.autosaveIntervalId);
+                    if (window.bootTrackerInterval) clearInterval(window.bootTrackerInterval);
+                    
+                    emulatorInstance.stop();
+                    emulatorInstance.destroy();
+                    emulatorInstance = null;
+                    
+                    // Strict Garage Collection Trigger - Force revokes giant memory blobs
+                    if (window.activeOsUrl) { URL.revokeObjectURL(window.activeOsUrl); window.activeOsUrl = null; }
+                    if (window.activeHddUrl) { URL.revokeObjectURL(window.activeHddUrl); window.activeHddUrl = null; }
+                    
+                    const container = document.getElementById("os-screen_container");
+                    container.innerHTML = '<div style="white-space: pre; font: 14px monospace; line-height: 14px; color:#fff;"></div><canvas style="display: none"></canvas>';
+                    document.getElementById('v86-boot-status').innerText = "";
+                    document.getElementById('v86-loader').style.display = 'none';
+                }
+            } 
+        };
+
+        window.injectDrive = function() {
+            if(!emulatorInstance) return alert("You must boot a machine before mounting a disk.");
+            const file = document.getElementById('inject-file').files[0];
+            if(!file) return alert("Select a file to inject.");
+            const type = document.getElementById('inject-type').value;
+            
+            if(type === 'cdrom') {
+                emulatorInstance.mount_cdrom(file);
+                alert("File mounted to Virtual CD-ROM. Check your D: Drive or /dev/cdrom.");
+            } else {
+                emulatorInstance.mount_fda(file);
+                alert("File mounted to Virtual Floppy. Check your A: Drive or /dev/fd0.");
+            }
+        };
+
+        window.sendMacro = function(type) {
+            if(!emulatorInstance) return alert("The virtual machine must be running to send keyboard commands.");
+            
+            if(type === 'cad') {
+                emulatorInstance.keyboard_send_scancodes([0x1D, 0x38, 0x53]);
+                setTimeout(() => emulatorInstance.keyboard_send_scancodes([0x53|0x80, 0x38|0x80, 0x1D|0x80]), 100);
+            } else if(type === 'cse') {
+                emulatorInstance.keyboard_send_scancodes([0x1D, 0x2A, 0x01]);
+                setTimeout(() => emulatorInstance.keyboard_send_scancodes([0x01|0x80, 0x2A|0x80, 0x1D|0x80]), 100);
+            } else if(type === 'winr') {
+                emulatorInstance.keyboard_send_scancodes([0xE0, 0x5B, 0x13]);
+                setTimeout(() => emulatorInstance.keyboard_send_scancodes([0x13|0x80, 0xE0, 0x5B|0x80]), 100);
+            } else if(type === 'alttab') {
+                emulatorInstance.keyboard_send_scancodes([0x38, 0x0F]);
+                setTimeout(() => emulatorInstance.keyboard_send_scancodes([0x0F|0x80, 0x38|0x80]), 100);
+            } else if(type === 'altf4') {
+                emulatorInstance.keyboard_send_scancodes([0x38, 0x3E]);
+                setTimeout(() => emulatorInstance.keyboard_send_scancodes([0x3E|0x80, 0x38|0x80]), 100);
+            }
+        };
+
+    </script>
+</body>
+</html>
