@@ -24,6 +24,8 @@
         .storage-btn:hover { background: var(--accent); color: #000; }
         .viewer-btn { background: #1a1a24; color: var(--success); border: 1px solid var(--success); padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px; transition: 0.2s;}
         .viewer-btn:hover { background: var(--success); color: #000; }
+        .profile-btn { background: #111; color: var(--warn); border: 1px solid var(--warn); padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px; transition: 0.2s; display: flex; align-items: center; gap: 5px;}
+        .profile-btn:hover { background: var(--warn); color: #000; }
 
         .workspace { flex: 1; display: flex; position: relative; padding: 20px; gap:20px; overflow:hidden;}
         
@@ -108,6 +110,8 @@
         
         .clear-btn { background: #333; border: 1px solid #555; color: #fff; padding: 8px 12px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 14px; }
         .clear-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+        .multiplayer-box { background: rgba(0, 255, 170, 0.05); border: 1px dashed var(--success); padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 10px; }
     </style>
 </head>
 <body>
@@ -119,6 +123,7 @@
             <button class="tab-btn active" onclick="switchTab('console')">Arcade & Consoles</button>
             <button class="viewer-btn" onclick="openLibraryViewer()">🗂️ Full ROM Viewer</button>
             <button class="storage-btn" onclick="openStorageManager()">💽 Storage Manager</button>
+            <button class="profile-btn" onclick="openProfileMaker()">👤 <span id="header-username">Guest</span></button>
         </div>
     </div>
 
@@ -431,11 +436,23 @@
                     <span id="install-progress" style="color: var(--success); font-size: 12px; margin-left: 10px; font-weight: bold;"></span>
                 </div>
 
-                <!-- CONSOLE AUTOSAVE TOGGLE -->
-                <div style="display:flex; align-items:center; padding:10px; background:#0b0c10; border-radius:6px; border:1px solid #333;">
-                    <label style="font-size:12px; font-weight:bold; color:var(--success); cursor:pointer;">
-                        <input type="checkbox" id="console-autosave" checked> 🔄 Enable Quiet Auto-Save (Saves State every 60s while playing)
-                    </label>
+                <!-- CONSOLE MULTIPLAYER AND AUTOSAVE MODULES -->
+                <div style="display: flex; gap: 15px; align-items: stretch; flex-wrap: wrap;">
+                    <div class="multiplayer-box" style="flex: 1; min-width: 300px;">
+                        <h4 style="margin: 0; color: var(--success);">🌐 Netplay Configuration</h4>
+                        <div style="font-size: 11px; color: #aaa;">
+                            Multiplayer is routed through dedicated STUN/TURN ICE servers to bypass NAT. Open the in-game menu (default key: Shift) while playing, select <b>Netplay</b>, and either Host or Join a room. Your profile name will sync automatically.
+                        </div>
+                    </div>
+                    <div style="display:flex; flex-direction: column; justify-content: center; padding:10px; background:#0b0c10; border-radius:6px; border:1px solid #333; flex: 1; min-width: 300px;">
+                        <h4 style="margin: 0 0 10px 0; color: var(--warn);">💾 Save Data Manager</h4>
+                        <label style="font-size:12px; font-weight:bold; color:var(--success); cursor:pointer;">
+                            <input type="checkbox" id="console-autosave" checked> 🔄 Enable Quiet Auto-Save (Saves State every 60s while playing)
+                        </label>
+                        <span style="font-size:10px; color:#888; margin-top:5px; line-height: 1.4;">
+                            * Game saves are pinned to the internal ROM title and persisted permanently to your browser's IndexedDB. Do not change the title of your game in the library if you want to keep your progress! You can manually export save data via the in-game emulator menu.
+                        </span>
+                    </div>
                 </div>
             </div>
             
@@ -456,6 +473,19 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- PROFILE MODAL -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content" style="width: 350px; text-align: center;">
+            <h2 style="margin-top:0; color:var(--warn); border-bottom:1px solid #333; padding-bottom:10px;">👤 Player Profile</h2>
+            <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">This display name will be used across all netplay and multiplayer rooms you host or join.</p>
+            <input type="text" id="profile-name-input" placeholder="Enter Username..." maxlength="16" style="width:100%; box-sizing:border-box; margin-bottom:20px; padding: 12px; font-size: 16px; text-align: center;">
+            <div style="display:flex; justify-content:space-between; gap: 10px;">
+                <button class="close-modal" style="background:#333; color:white; flex: 1;">Cancel</button>
+                <button onclick="saveProfile()" style="background:var(--success); color:#000; flex: 1;">Save Profile</button>
+            </div>
+        </div>
     </div>
 
     <!-- STORAGE MODAL -->
@@ -529,6 +559,25 @@
         
         const dbName = "MatrixROMVault";
         let db;
+
+        // Initialize Profile
+        function loadProfile() {
+            const storedName = localStorage.getItem('matrix_profile_name') || 'Player 1';
+            document.getElementById('header-username').innerText = storedName;
+            document.getElementById('profile-name-input').value = storedName;
+        }
+
+        window.openProfileMaker = function() {
+            document.getElementById('profile-modal').style.display = 'flex';
+        };
+
+        window.saveProfile = function() {
+            let newName = document.getElementById('profile-name-input').value.trim();
+            if(!newName) newName = "Player 1";
+            localStorage.setItem('matrix_profile_name', newName);
+            loadProfile();
+            document.getElementById('profile-modal').style.display = 'none';
+        };
 
         const CORE_NAMES = {
             'nes': 'Nintendo Entertainment System', 'snes': 'Super Nintendo', 'n64': 'Nintendo 64',
@@ -622,6 +671,7 @@
         };
         request.onsuccess = (e) => { 
             db = e.target.result; 
+            try { loadProfile(); } catch(err) { console.error("loadProfile failed", err); }
             try { renderLibrary(); } catch(err) { console.error("renderLibrary failed", err); }
             try { renderSnapshots(); } catch(err) { console.error("renderSnapshots failed", err); }
             try { checkV86Status(); } catch(err) { console.error("checkV86Status failed", err); }
@@ -1258,7 +1308,9 @@
             
             const safeName = gameName.replace(/'/g, "\\'").replace(/"/g, '\\"');
             
-            const deterministicGameId = gameId ? 'game_' + gameId : 'game_' + safeName.replace(/[^a-zA-Z0-9]/g, '_');
+            // Generate a persistent, stable Game ID tied to the exact ROM filename so saves remain intact
+            // even if a user deletes and re-imports the same ROM later.
+            const deterministicGameId = 'ejs_save_' + safeName.replace(/[^a-zA-Z0-9]/g, '_');
 
             const container = document.getElementById('console-screen');
             container.innerHTML = '<iframe id="game-iframe" allow="fullscreen *; gamepad *; autoplay *" style="width: 100%; height: 100%; border: none; background: #000;"></iframe>';
@@ -1323,6 +1375,8 @@
                     } catch(e) {}
                 }, 60000);
             ` : '';
+            
+            const profileName = localStorage.getItem('matrix_profile_name') || 'Player 1';
 
             const emuContent = `
                 <!DOCTYPE html>
@@ -1340,11 +1394,16 @@
                         
                         window.EJS_gameID = '${deterministicGameId}'; 
                         window.EJS_gameName = '${safeName}';
+                        window.EJS_netplayName = '${profileName}';
                         
-                        // INJECTED STUN SERVERS FOR WEB-RTC NETPLAY ROUTING
+                        // INJECTED STUN/TURN SERVERS FOR WEB-RTC NETPLAY ROUTING TO BYPASS NAT
                         window.EJS_netplayIceServers = [
                             { urls: "stun:stun.l.google.com:19302" },
-                            { urls: "stun:stun1.l.google.com:19302" }
+                            { urls: "stun:stun1.l.google.com:19302" },
+                            { urls: "stun:openrelay.metered.ca:80" },
+                            { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+                            { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+                            { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
                         ];
 
                         ${threadConfig}
