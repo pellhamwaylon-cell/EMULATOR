@@ -154,8 +154,8 @@
             <!-- X86 OS SNAPSHOT SIDEBAR VIEW -->
             <div id="os-sidebar-content" style="display: none; flex-direction: column; height: 100%;">
                 <div style="padding: 10px; background: rgba(255,0,85,0.1); border-bottom: 1px solid #333; font-size: 11px; color: var(--text);">
-                    <strong style="color:var(--danger);">⚠️ SNAPSHOT RULE:</strong><br>
-                    Click <strong>🚀 Fast Boot</strong> on your ISO/HDD <em>before</em> clicking Load on a Snapshot!
+                    <strong style="color:var(--danger);">⚠️ FULL SYSTEM SNAPSHOTS:</strong><br>
+                    These snapshots correctly bundle BOTH your RAM state and your Hard Drive (.img) to prevent OS corruption upon load.
                 </div>
                 <div class="sidebar-section">
                     <h2>🖥️ Virtual Machine Snapshots</h2>
@@ -163,7 +163,7 @@
                 </div>
                 
                 <div class="sidebar-section" style="flex: 0 0 auto; border-top: 1px solid #333; background: #0d0f14; padding: 15px;">
-                    <button style="width: 100%; border-color: var(--success); color: var(--success); font-size: 13px; padding: 10px; margin-bottom: 10px;" onclick="createNewOSState()">📸 Capture New Snapshot</button>
+                    <button style="width: 100%; border-color: var(--success); color: var(--success); font-size: 13px; padding: 10px; margin-bottom: 10px;" onclick="createNewOSState()">📸 Capture Full Snapshot (RAM+HDD)</button>
                     <button style="width: 100%; border-color: var(--accent); color: #fff; font-size: 13px; padding: 10px;" onclick="document.getElementById('import-state-upload').click()">📥 Import State from File</button>
                     <input type="file" id="import-state-upload" accept=".bin" style="display:none" onchange="importOSState(event)">
                 </div>
@@ -556,6 +556,7 @@
         window.currentViewerFilter = 'all';
         window.autosaveIntervalId = null;
         window.bootTrackerInterval = null;
+        window.isRestoringSnapshot = false; // Lock variable to prevent double-clicks during async loads
         
         const dbName = "MatrixROMVault";
         let db;
@@ -912,6 +913,11 @@
                     if (item.isChunked && item.totalSize) { sizeMb = (item.totalSize / (1024*1024)).toFixed(2); totalSize += item.totalSize; }
                     else if (item.data && item.data.size) { sizeMb = (item.data.size / (1024*1024)).toFixed(2); totalSize += item.data.size; } 
                     else if (item.data && item.data.byteLength) { sizeMb = (item.data.byteLength / (1024*1024)).toFixed(2); totalSize += item.data.byteLength; }
+                    else if (item.data && item.data.ram && item.data.ram.byteLength) { 
+                        let totalBytes = item.data.ram.byteLength;
+                        if(item.data.hda && item.data.hda.size) totalBytes += item.data.hda.size;
+                        sizeMb = (totalBytes / (1024*1024)).toFixed(2); totalSize += totalBytes;
+                    }
                     
                     let tag = item.type === 'os_state' ? 'OS SNAPSHOT' : (item.type === 'system' ? 'SYSTEM CORE' : (CORE_NAMES[item.core] || item.core || 'SYSTEM'));
                     let brandColor = item.type === 'os_state' ? '#888' : (item.type === 'system' ? 'var(--accent)' : `var(--brand-${getBrandClass(item.core)})`);
@@ -1067,7 +1073,16 @@
                     }
                     
                     items.forEach(item => {
-                        let sizeMb = item.data && item.data.byteLength ? (item.data.byteLength / (1024*1024)).toFixed(2) : (item.data && item.data.size ? (item.data.size / (1024*1024)).toFixed(2) : '0.00');
+                        let sizeMb = '0.00';
+                        // Handle legacy vs new structure
+                        if (item.data && item.data.ram) {
+                            let totalBytes = item.data.ram.byteLength || item.data.ram.size || 0;
+                            if (item.data.hda && item.data.hda.size) totalBytes += item.data.hda.size;
+                            sizeMb = (totalBytes / (1024*1024)).toFixed(2);
+                        } else {
+                            sizeMb = item.data && item.data.byteLength ? (item.data.byteLength / (1024*1024)).toFixed(2) : (item.data && item.data.size ? (item.data.size / (1024*1024)).toFixed(2) : '0.00');
+                        }
+
                         let isAutosave = (item.name === 'AUTOSAVE_X86');
                         let delBtnText = isAutosave ? '🗑️ Delete Autosave' : '✖';
                         let delBtnStyle = isAutosave ? 'flex:1; border-color:var(--danger); background:rgba(255,0,85,0.1);' : 'flex:1;';
@@ -1102,41 +1117,114 @@
             if (!emulatorInstance) return alert("You must Boot a machine before you can capture its state.");
             customPrompt("Enter a name for this snapshot:", "", async (name) => {
                 if (!name) return;
-                const stateBlob = await emulatorInstance.save_state();
-                const tx = db.transaction("games", "readwrite");
-                tx.objectStore("games").put({ name: name, type: 'os_state', data: stateBlob, favorite: false });
-                tx.oncomplete = () => { alert("Snapshot captured."); renderSnapshots(); };
+                
+                document.getElementById('v86-boot-status').innerText = "Capturing Full System State (RAM + HDD)... This may take a minute.";
+                document.getElementById('v86-loader').style.display = 'flex';
+                
+                // Allow UI to update before heavy synchronous array buffering
+                setTimeout(async () => {
+                    try {
+                        const ramState = await emulatorInstance.save_state();
+                        let hdaState = null;
+                        
+                        if (emulatorInstance.disk_images && emulatorInstance.disk_images.hda) {
+                            hdaState = await new Promise((resolve) => {
+                                emulatorInstance.get_disk_image("hda", (err, data) => {
+                                    if (err) resolve(null);
+                                    else resolve(new Blob([data], { type: "application/octet-stream" }));
+                                });
+                            });
+                        }
+                        
+                        const tx = db.transaction("games", "readwrite");
+                        tx.objectStore("games").put({ name: name, type: 'os_state', data: { ram: ramState, hda: hdaState }, favorite: false });
+                        tx.oncomplete = () => { 
+                            alert("Full Snapshot captured."); 
+                            renderSnapshots(); 
+                        };
+                    } catch (e) {
+                        alert("Failed to capture snapshot.");
+                        console.error(e);
+                    } finally {
+                        document.getElementById('v86-loader').style.display = 'none';
+                    }
+                }, 100);
             });
         };
 
         window.overwriteOSState = async function(id) {
             if (!emulatorInstance) return alert("You must Boot a machine before you can save state.");
-            if (!confirm("Overwrite this snapshot with the current machine memory?")) return;
-            const stateBlob = await emulatorInstance.save_state();
+            if (!confirm("Overwrite this snapshot with the current machine memory & full hard drive?")) return;
             
-            db.transaction("games", "readonly").objectStore("games").get(id).onsuccess = (e) => {
-                const item = e.target.result;
-                if (!item) return;
-                item.data = stateBlob;
-                const tx = db.transaction("games", "readwrite");
-                tx.objectStore("games").put(item);
-                tx.oncomplete = () => { alert("Snapshot overwritten successfully."); renderSnapshots(); };
-            };
+            document.getElementById('v86-boot-status').innerText = "Capturing Full System State (RAM + HDD)... This may take a minute.";
+            document.getElementById('v86-loader').style.display = 'flex';
+
+            setTimeout(async () => {
+                try {
+                    const ramState = await emulatorInstance.save_state();
+                    let hdaState = null;
+                    if (emulatorInstance.disk_images && emulatorInstance.disk_images.hda) {
+                        hdaState = await new Promise((resolve) => {
+                            emulatorInstance.get_disk_image("hda", (err, data) => {
+                                if (err) resolve(null);
+                                else resolve(new Blob([data], { type: "application/octet-stream" }));
+                            });
+                        });
+                    }
+                    
+                    db.transaction("games", "readonly").objectStore("games").get(id).onsuccess = (e) => {
+                        const item = e.target.result;
+                        if (!item) return;
+                        item.data = { ram: ramState, hda: hdaState };
+                        const tx = db.transaction("games", "readwrite");
+                        tx.objectStore("games").put(item);
+                        tx.oncomplete = () => { alert("Snapshot overwritten successfully."); renderSnapshots(); };
+                    };
+                } catch(e) {
+                    alert("Failed to overwrite snapshot.");
+                } finally {
+                    document.getElementById('v86-loader').style.display = 'none';
+                }
+            }, 100);
         };
 
         window.loadOSState = async function(id) {
-            if (!emulatorInstance) return alert("You must Boot the exact ISO/Drive first to establish hardware boundaries before injecting a state.");
-            db.transaction("games", "readonly").objectStore("games").get(id).onsuccess = (e) => {
-                const item = e.target.result;
-                if (item && item.data) {
-                    try {
-                        emulatorInstance.restore_state(item.data);
-                        alert(`State '${item.name}' restored successfully.`);
-                    } catch (err) {
-                        alert("Failed to restore state. The booted ISO configuration might not match the snapshot hardware.");
-                    }
+            if (window.isRestoringSnapshot) return alert("A snapshot is currently loading. Please wait until the process is complete.");
+            window.isRestoringSnapshot = true;
+            
+            try {
+                const item = await new Promise((resolve) => {
+                    db.transaction("games", "readonly").objectStore("games").get(id).onsuccess = (e) => resolve(e.target.result);
+                });
+
+                if (!item || !item.data) return;
+                
+                let ramData = item.data;
+                let hdaData = null;
+                
+                // Backwards compatibility for old RAM-only structure vs New RAM+HDD structure
+                if (item.data.ram !== undefined) {
+                    ramData = item.data.ram;
+                    hdaData = item.data.hda;
                 }
-            };
+
+                if (hdaData) {
+                    if (!confirm("This snapshot contains full Hard Drive data. Restoring it will REBOOT the system to this exact point in time. Unsaved progress since this snapshot will be lost. Continue?")) return;
+                    // Pass the specialized snapshot parameters into the boot sequence
+                    await bootOS(hdaData, ramData);
+                } else {
+                    // Legacy RAM-only restore
+                    if (!emulatorInstance) return alert("You must Boot the exact ISO/Drive first to establish hardware boundaries before injecting a RAM-only state.");
+                    let dataBuf = await (ramData instanceof Blob ? ramData.arrayBuffer() : ramData);
+                    emulatorInstance.restore_state(dataBuf);
+                    alert(`State '${item.name}' restored successfully.`);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Failed to restore state. The booted ISO configuration might not match the snapshot hardware.");
+            } finally {
+                window.isRestoringSnapshot = false;
+            }
         };
 
         window.cloneOSState = function(id, name) {
@@ -1171,19 +1259,32 @@
                 const item = e.target.result;
                 if (!item || !item.data) return alert("Failed to locate state data.");
                 
-                let blobData = item.data;
-                if (!(item.data instanceof Blob)) {
-                    blobData = new Blob([item.data], { type: 'application/octet-stream' });
+                let blobData = item.data.ram !== undefined ? item.data.ram : item.data;
+                if (!(blobData instanceof Blob)) {
+                    blobData = new Blob([blobData], { type: 'application/octet-stream' });
                 }
                 
                 const url = URL.createObjectURL(blobData);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = (item.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()) + "_snapshot.bin";
+                a.download = (item.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()) + "_snapshot_ram.bin";
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                
+                if (item.data.hda) {
+                    setTimeout(() => {
+                        const hdaUrl = URL.createObjectURL(item.data.hda);
+                        const a2 = document.createElement('a');
+                        a2.href = hdaUrl;
+                        a2.download = (item.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()) + "_snapshot_hdd.img";
+                        document.body.appendChild(a2);
+                        a2.click();
+                        document.body.removeChild(a2);
+                        URL.revokeObjectURL(hdaUrl);
+                    }, 500);
+                }
             };
         };
 
@@ -1192,16 +1293,16 @@
             if (!file) return;
             
             const defaultName = file.name.replace('.bin', '');
-            customPrompt("Name for imported snapshot:", defaultName, (name) => {
+            customPrompt("Name for imported RAM snapshot:", defaultName, (name) => {
                 if (!name) {
                     event.target.value = ''; 
                     return;
                 }
                 
                 const tx = db.transaction("games", "readwrite");
-                tx.objectStore("games").put({ name: name, type: 'os_state', data: file, favorite: false });
+                tx.objectStore("games").put({ name: name, type: 'os_state', data: { ram: file, hda: null }, favorite: false });
                 tx.oncomplete = () => { 
-                    alert("Snapshot imported successfully."); 
+                    alert("RAM Snapshot imported successfully."); 
                     renderSnapshots(); 
                     event.target.value = ''; 
                 };
@@ -1306,11 +1407,9 @@
             window.activeGameUrl = URL.createObjectURL(fileBlob);
             const url = window.activeGameUrl;
             
-            const safeName = gameName.replace(/'/g, "\\'").replace(/"/g, '\\"');
-            
-            // Generate a persistent, stable Game ID tied to the exact ROM filename so saves remain intact
-            // even if a user deletes and re-imports the same ROM later.
-            const deterministicGameId = 'ejs_save_' + safeName.replace(/[^a-zA-Z0-9]/g, '_');
+            // Retain the exact file extension so CD/ISO-based emulator cores don't error out
+            const cleanFileName = gameName.replace(/[^a-zA-Z0-9.\-_ ()]/g, '_'); 
+            const deterministicGameId = 'ejs_save_' + cleanFileName;
 
             const container = document.getElementById('console-screen');
             container.innerHTML = '<iframe id="game-iframe" allow="fullscreen *; gamepad *; autoplay *" style="width: 100%; height: 100%; border: none; background: #000;"></iframe>';
@@ -1393,17 +1492,13 @@
                         window.EJS_pathtodata = 'https://cdn.emulatorjs.org/latest/data/';
                         
                         window.EJS_gameID = '${deterministicGameId}'; 
-                        window.EJS_gameName = '${safeName}';
+                        window.EJS_gameName = '${cleanFileName}';
                         window.EJS_netplayName = '${profileName}';
                         
                         // INJECTED STUN/TURN SERVERS FOR WEB-RTC NETPLAY ROUTING TO BYPASS NAT
                         window.EJS_netplayIceServers = [
-                            { urls: "stun:stun.l.google.com:19302" },
-                            { urls: "stun:stun1.l.google.com:19302" },
-                            { urls: "stun:openrelay.metered.ca:80" },
-                            { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
-                            { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
-                            { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
+                            { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+                            { urls: ["turn:openrelay.metered.ca:80", "turn:openrelay.metered.ca:443", "turn:openrelay.metered.ca:443?transport=tcp"], username: "openrelayproject", credential: "openrelayproject" }
                         ];
 
                         ${threadConfig}
@@ -1491,7 +1586,7 @@
             };
         };
 
-        window.bootOS = async function() {
+        window.bootOS = async function(snapshotHdaBlob = null, snapshotRamBlob = null) {
             let coreFiles = {};
             
             await new Promise(r => {
@@ -1513,7 +1608,7 @@
             const file = document.getElementById('os-file').files[0]; 
             const hddFile = document.getElementById('hdd-file').files[0];
             
-            if(!file && !hddFile) return alert("You must select at least a Boot Media (ISO) or a Target HDD to boot.");
+            if(!file && !hddFile && !snapshotHdaBlob) return alert("You must select at least a Boot Media (ISO) or a Target HDD to boot.");
             
             if (emulatorInstance) stopOS();
             
@@ -1534,7 +1629,13 @@
             if (!window.coreUrlsCache.wasm) window.coreUrlsCache.wasm = URL.createObjectURL(coreFiles.wasm);
             
             if (file) window.activeOsUrl = URL.createObjectURL(file);
-            if (hddFile) window.activeHddUrl = URL.createObjectURL(hddFile);
+            
+            // Allow specialized full-state snapshots to override the physical HDD file input during reboot
+            if (snapshotHdaBlob) {
+                window.activeHddUrl = URL.createObjectURL(snapshotHdaBlob);
+            } else if (hddFile) {
+                window.activeHddUrl = URL.createObjectURL(hddFile);
+            }
 
             const acpiToggle = document.getElementById('toggle-acpi').checked;
             const apicToggle = document.getElementById('toggle-apic').checked;
@@ -1578,8 +1679,9 @@
                 else if (['img','fd','dsk','raw'].includes(ext)) cfg.fda = { url: window.activeOsUrl, async: true, size: file.size }; 
                 else cfg.hda = { url: window.activeOsUrl, async: true, size: file.size };
             }
-            if (hddFile) {
-                cfg.hda = { url: window.activeHddUrl, async: true, size: hddFile.size };
+            
+            if (window.activeHddUrl) {
+                cfg.hda = { url: window.activeHddUrl, async: true, size: snapshotHdaBlob ? snapshotHdaBlob.size : hddFile.size };
             }
             
             try {
@@ -1616,10 +1718,22 @@
                 } catch(e) { }
             }, 1000);
             
-            emulatorInstance.add_listener("emulator-ready", function() {
+            emulatorInstance.add_listener("emulator-ready", async function() {
                 setTimeout(() => {
                     document.getElementById('v86-loader').style.display = 'none';
                 }, 10000);
+                
+                // If a snapshot forced this reboot, inject its RAM buffer immediately after boot
+                if (snapshotRamBlob) {
+                    try {
+                        let buf = await (snapshotRamBlob instanceof Blob ? snapshotRamBlob.arrayBuffer() : snapshotRamBlob);
+                        emulatorInstance.restore_state(buf);
+                        alert("System successfully restored to the exact point in time!");
+                    } catch (e) {
+                        console.error(e);
+                        alert("Failed to restore RAM state after rebooting with the snapshot's Hard Drive.");
+                    }
+                }
             });
 
             if (document.getElementById('toggle-autosave').checked) {
@@ -1627,7 +1741,17 @@
                 window.autosaveIntervalId = setInterval(async () => {
                     if (emulatorInstance && typeof emulatorInstance.save_state === 'function') {
                         try {
-                            const stateBlob = await emulatorInstance.save_state();
+                            const ramState = await emulatorInstance.save_state();
+                            let hdaState = null;
+                            if (emulatorInstance.disk_images && emulatorInstance.disk_images.hda) {
+                                hdaState = await new Promise((resolve) => {
+                                    emulatorInstance.get_disk_image("hda", (err, data) => {
+                                        if (err) resolve(null);
+                                        else resolve(new Blob([data], { type: "application/octet-stream" }));
+                                    });
+                                });
+                            }
+
                             const tx = db.transaction("games", "readwrite");
                             const store = tx.objectStore("games");
                             let found = false;
@@ -1638,7 +1762,7 @@
                                 if (cursor) {
                                     if(cursor.value.type === 'os_state' && cursor.value.name === 'AUTOSAVE_X86') {
                                         let item = cursor.value;
-                                        item.data = stateBlob;
+                                        item.data = { ram: ramState, hda: hdaState };
                                         store.put(item);
                                         found = true;
                                         renderSnapshots();
@@ -1646,7 +1770,7 @@
                                         cursor.continue();
                                     }
                                 } else {
-                                    if(!found) store.put({ name: 'AUTOSAVE_X86', type: 'os_state', data: stateBlob, favorite: false }).onsuccess = () => renderSnapshots();
+                                    if(!found) store.put({ name: 'AUTOSAVE_X86', type: 'os_state', data: { ram: ramState, hda: hdaState }, favorite: false }).onsuccess = () => renderSnapshots();
                                 }
                             }
                         } catch(e) { console.warn("Autosave skipped this cycle.", e); }
