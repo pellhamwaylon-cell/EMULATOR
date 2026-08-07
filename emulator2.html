@@ -37,7 +37,6 @@
         
         #console-dashboard-wrapper { 
             flex: 1; display: flex; flex-direction: column; border-radius: 8px; border: 1px solid #333; overflow: hidden; position: relative; transition: background 0.4s ease; 
-            /* THEME VARIABLES POPULATED BY JS */
             background: var(--theme-bg, var(--panel));
             font-family: var(--theme-font, 'Segoe UI', sans-serif);
         }
@@ -56,9 +55,9 @@
         .btn-netplay { background: #1a1a24; color: var(--success); border: 1px solid var(--success); padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .btn-netplay:hover { background: var(--success); color: #000; }
 
-        #dynamic-system-title { text-align: center; font-size: 28px; font-weight: bold; color: var(--theme-color, #fff); padding: 25px 40px 0 40px; min-height: 60px; text-shadow: 0 2px 10px rgba(0,0,0,0.9); z-index: 10; position: relative; letter-spacing: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+        #dynamic-system-title { text-align: center; font-size: 28px; font-weight: bold; color: var(--theme-color, #fff); padding: 25px 40px 0 40px; min-height: 60px; text-shadow: var(--theme-text-shadow, 0 2px 10px rgba(0,0,0,0.9)); z-index: 10; position: relative; letter-spacing: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 
-        /* THEMED CARDS */
+        /* THEMED CARDS & DRAG/DROP */
         .viewer-grid { flex: 1; z-index: 10; position: relative; padding: 20px; }
         
         .viewer-grid.layout-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; align-content: flex-start; overflow-y: auto; overflow-x: hidden; }
@@ -74,9 +73,12 @@
             border-radius: var(--theme-card-radius, 8px); 
             box-shadow: var(--theme-card-shadow, none); 
             color: var(--theme-color, #fff); 
-            padding: 12px; display: flex; flex-direction: column; gap: 10px; transition: 0.2s; position: relative; cursor: pointer; outline: 3px solid transparent; 
+            padding: 12px; display: flex; flex-direction: column; gap: 10px; transition: 0.2s; position: relative; cursor: grab; outline: 3px solid transparent; 
         }
         
+        .theme-card:active { cursor: grabbing; }
+        .theme-card.drag-over { outline: 3px dashed var(--accent) !important; transform: scale(1.02); opacity: 0.8; }
+
         .theme-card:hover, .theme-card.gamepad-focus { 
             outline: var(--theme-focus-outline, 3px solid var(--accent)); 
             box-shadow: var(--theme-focus-shadow, 0 15px 25px rgba(0,0,0,0.6)); 
@@ -84,11 +86,11 @@
             z-index: 10; 
         }
 
-        .viewer-cover { width: 100%; height: 200px; object-fit: cover; border-radius: calc(var(--theme-card-radius, 8px) - 4px); background: #000; box-shadow: 0 4px 8px rgba(0,0,0,0.6); transition: 0.2s; }
+        .viewer-cover { width: 100%; height: 200px; object-fit: cover; border-radius: calc(var(--theme-card-radius, 8px) - 4px); background: #000; box-shadow: 0 4px 8px rgba(0,0,0,0.6); transition: 0.2s; pointer-events: none; }
         .layout-horizontal .viewer-cover { height: 240px; }
         
         .theme-card h4 { margin: 5px 0 0 0; font-size: 13px; text-shadow: var(--theme-text-shadow, 0 2px 4px rgba(0,0,0,0.8)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 25px; color: var(--theme-color, #fff);}
-        .card-meta { font-size: 10px; opacity: 0.7; display: flex; justify-content: space-between; margin-top: auto; font-family: monospace; }
+        .card-meta { font-size: 10px; opacity: 0.8; display: flex; justify-content: space-between; margin-top: auto; font-family: monospace; color: var(--theme-color, #fff); }
         
         /* CARD INLINE MANAGEMENT BUTTONS */
         .card-btn { position: absolute; top: 15px; background: rgba(0,0,0,0.7); border: 1px solid #444; border-radius: 50%; color: #fff; width: 28px; height: 28px; cursor: pointer; transition: 0.2s; z-index: 5; display: flex; align-items: center; justify-content: center; font-size: 14px; }
@@ -106,6 +108,7 @@
         .sidebar-section h2 { margin: 0; padding: 12px 15px; background: #000; color: var(--accent); font-size: 13px; border-bottom: 1px solid #333; }
         .library-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
         .lib-item { background: #000; padding: 10px; border: 1px solid #222; border-radius: 4px; display: flex; flex-direction: column; gap: 8px; border-left: 4px solid #444; }
+        .lib-actions { display: flex; gap: 5px; flex-wrap: wrap; }
         
         /* FORM CONTROLS & MODALS */
         select, input[type="file"], input[type="text"], button { padding: 8px; background: #000; color: white; border: 1px solid var(--accent); border-radius: 4px; font-family: monospace; }
@@ -238,7 +241,7 @@
 
                 <div id="dynamic-system-title">Select a title to begin...</div>
 
-                <!-- LIBRARY GRID VIEW -->
+                <!-- LIBRARY GRID VIEW (Drag & Drop Enabled) -->
                 <div id="full-library-grid" class="viewer-grid layout-grid"></div>
 
                 <!-- NETPLAY HUB VIEW -->
@@ -344,6 +347,18 @@
         </div>
     </div>
 
+    <!-- ELECTRON-SAFE CUSTOM PROMPT MODAL -->
+    <div id="custom-prompt" class="modal">
+        <div class="modal-content" style="width: 350px; text-align: center;">
+            <h3 id="prompt-title" style="margin-top:0; color:var(--accent);">Enter Name</h3>
+            <input type="text" id="prompt-input" style="width:100%; box-sizing:border-box; margin-bottom:15px; padding: 10px; font-size: 14px;">
+            <div style="display:flex; justify-content:space-between; gap: 10px;">
+                <button onclick="closePrompt()" style="background:#333; color:white; flex: 1;">Cancel</button>
+                <button onclick="submitPrompt()" style="background:var(--success); color:#000; flex: 1;">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <!-- STORAGE MODAL -->
     <div id="storage-modal" class="modal">
         <div class="modal-content" style="max-height: 80vh;">
@@ -384,6 +399,7 @@
         window.activeGameUrl = null;
         window.consoleBiosFile = null;
         window.currentViewerFilter = 'all';
+        window.coreUrlsCache = window.coreUrlsCache || {}; 
 
         // Init DB
         const request = indexedDB.open("MatrixROMVault", 4); 
@@ -401,6 +417,7 @@
             loadProfile();
             renderConsoleTabs();
             renderSnapshots();
+            checkV86Status();
         };
 
         // --------------------------------------------------------
@@ -426,43 +443,53 @@
         };
 
         const THEMES = {
-            // XBOX 360 / NXE / METRO STYLE FOR 'ALL TITLES'
-            'all': { bg: 'radial-gradient(ellipse at bottom right, #8fc31f 0%, #e0e5ec 50%, #ffffff 100%)', cBg: '#fff', cBd: '1px solid #ccc', cRad: '8px', col: '#555', font: '"Segoe UI", sans-serif', lay: 'grid', fOut: '4px solid #8fc31f', fShad: '0 15px 30px rgba(143,195,31,0.5)', fTrans: 'scale(1.08)' },
+            // XBOX 360 / NXE / METRO STYLE FOR 'ALL TITLES' (Bright & Dark Text)
+            'all': { bg: 'radial-gradient(ellipse at bottom right, #8fc31f 0%, #e0e5ec 50%, #ffffff 100%)', cBg: '#fff', cBd: '1px solid #ccc', cRad: '8px', col: '#333', font: '"Segoe UI", sans-serif', lay: 'grid', fOut: '4px solid #8fc31f', fShad: '0 15px 30px rgba(143,195,31,0.5)', fTrans: 'scale(1.08)', textShadow: 'none' },
             'favorites': { bg: 'radial-gradient(ellipse at top, #332a00, #0b0c10)', cBg: '#1a1810', cBd: '1px solid #ffd700', cRad: '8px', col: '#ffd700', font: 'sans-serif', lay: 'grid', fOut: '3px solid #ffd700', fShad: '0 15px 30px rgba(255,215,0,0.4)', fTrans: 'scale(1.05) translateY(-5px)', textShadow: 'none' },
             
             // SONY
             'psx': { bg: 'radial-gradient(circle at center, #000044 0%, #000000 100%)', cBg: 'rgba(128,128,128,0.2)', cBd: '2px solid #555', cRad: '4px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '3px solid #00f', fShad: '0 0 20px #00f', fTrans: 'scale(1.05)', textShadow: '0 2px 4px #000' },
             'psp': { bg: 'linear-gradient(135deg, #0f80cc, #042542)', cBg: 'transparent', cBd: 'none', cRad: '4px', col: '#fff', font: 'sans-serif', lay: 'horizontal', fOut: '2px solid #fff', fShad: '0 25px 50px rgba(0,0,0,0.8)', fTrans: 'scale(1.15)', textShadow: '0 2px 4px #000' },
             
-            // NINTENDO
+            // NINTENDO (Bright themes enforce dark text)
             'nes': { bg: '#808080', cBg: '#000', cBd: '4px solid #000', cRad: '0', col: '#cc0000', font: 'monospace', lay: 'grid', fOut: '4px solid #cc0000', fShad: '0 10px 0px #000', fTrans: 'scale(1.05)', textShadow: 'none' },
-            'snes': { bg: '#b5b6b5', cBg: '#d3d4d5', cBd: '3px solid #5a5a72', cRad: '15px', col: '#5a5a72', font: 'sans-serif', lay: 'grid', fOut: '4px solid #684b82', fShad: '0 10px 20px rgba(0,0,0,0.5)', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'snes': { bg: '#b5b6b5', cBg: '#d3d4d5', cBd: '3px solid #5a5a72', cRad: '15px', col: '#333', font: 'sans-serif', lay: 'grid', fOut: '4px solid #684b82', fShad: '0 10px 20px rgba(0,0,0,0.5)', fTrans: 'scale(1.05)', textShadow: 'none' },
             'n64': { bg: 'radial-gradient(circle, #222, #000)', cBg: '#333', cBd: '2px solid #e70012', cRad: '12px', col: '#ffcc00', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #009b3a', fShad: '0 15px 30px #000', fTrans: 'scale(1.1)', textShadow: '0 2px 4px #000' },
             'gb': { bg: '#8bac0f', cBg: '#9bbc0f', cBd: '4px solid #0f380f', cRad: '5px', col: '#0f380f', font: 'monospace', lay: 'grid', fOut: '4px solid #0f380f', fShad: '0 0 15px #0f380f', fTrans: 'scale(1.05)', textShadow: 'none' },
             'gbc': { bg: '#800080', cBg: 'rgba(255,255,255,0.2)', cBd: '2px solid #fff', cRad: '15px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '4px solid #00ff00', fShad: '0 0 20px #00ff00', fTrans: 'scale(1.05)', textShadow: '0 2px 4px #000' },
-            'gba': { bg: '#3a2e85', cBg: '#fff', cBd: 'none', cRad: '20px', col: '#3a2e85', font: 'sans-serif', lay: 'horizontal', fOut: '5px solid #fff', fShad: '0 15px 25px rgba(0,0,0,0.8)', fTrans: 'scale(1.1)', textShadow: '0 2px 4px #000' },
+            'gba': { bg: '#3a2e85', cBg: '#fff', cBd: 'none', cRad: '20px', col: '#3a2e85', font: 'sans-serif', lay: 'horizontal', fOut: '5px solid #fff', fShad: '0 15px 25px rgba(0,0,0,0.8)', fTrans: 'scale(1.1)', textShadow: 'none' },
             'nds': { bg: '#e6e6e6', cBg: '#fff', cBd: '2px solid #aaa', cRad: '12px', col: '#333', font: 'sans-serif', lay: 'grid', fOut: '4px solid #000', fShad: '0 10px 20px rgba(0,0,0,0.3)', fTrans: 'scale(1.05)', textShadow: 'none' },
-            'vb': { bg: '#000', cBg: '#000', cBd: '2px solid #ff0000', cRad: '0px', col: '#ff0000', font: 'monospace', lay: 'grid', fOut: '4px solid #ff0000', fShad: '0 0 30px #ff0000', fTrans: 'scale(1.05)', textShadow: '0 0 5px #ff0000' },
+            'vb': { bg: '#000', cBg: '#000', cBd: '2px solid #ff0000', cRad: '0px', col: '#ff0000', font: 'monospace', lay: 'grid', fOut: '4px solid #ff0000', fShad: '0 0 30px #ff0000', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'famicom_disk': { bg: '#8b0000', cBg: '#e6b800', cBd: '3px solid #000', cRad: '4px', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 15px #fff', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'pokemini': { bg: '#ffb3ba', cBg: '#fff', cBd: '2px solid #ff66b2', cRad: '10px', col: '#ff1493', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ff1493', fShad: '0 5px 15px #ff1493', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'gameandwatch': { bg: '#d3d3d3', cBg: '#a9a9a9', cBd: '3px solid #800000', cRad: '2px', col: '#333', font: 'monospace', lay: 'grid', fOut: '4px solid #000', fShad: '0 5px 10px #000', fTrans: 'scale(1.05)', textShadow: 'none' },
 
             // SEGA
-            'megadrive': { bg: '#000', cBg: '#111', cBd: '2px solid #e00000', cRad: '8px', col: '#e00000', font: 'sans-serif', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 20px #e00000', fTrans: 'scale(1.05)', textShadow: '0 0 5px #e00000' },
-            'mastersystem': { bg: '#000044', cBg: '#000', cBd: '1px solid #44f', cRad: '0', col: '#fff', font: 'monospace', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 15px #44f', fTrans: 'scale(1.05)', textShadow: '0 2px 4px #000' },
+            'megadrive': { bg: '#000', cBg: '#111', cBd: '2px solid #e00000', cRad: '8px', col: '#e00000', font: 'sans-serif', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 20px #e00000', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'mastersystem': { bg: '#000044', cBg: '#000', cBd: '1px solid #44f', cRad: '0', col: '#fff', font: 'monospace', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 15px #44f', fTrans: 'scale(1.05)', textShadow: 'none' },
             'saturn': { bg: '#333', cBg: '#222', cBd: '2px solid #1c82c4', cRad: '0', col: '#1c82c4', font: 'sans-serif', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 20px #1c82c4', fTrans: 'scale(1.05)', textShadow: 'none' },
             'dreamcast': { bg: '#f5f5f5', cBg: '#fff', cBd: '3px solid #ff6600', cRad: '50% 10px 50% 10px', col: '#333', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #0059a6', fShad: '0 10px 20px #ff6600', fTrans: 'scale(1.1) rotate(-1deg)', textShadow: 'none' },
-            'gamegear': { bg: '#111', cBg: '#000', cBd: '2px solid #0059a6', cRad: '15px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '4px solid #e60012', fShad: '0 0 20px #0059a6', fTrans: 'scale(1.05)', textShadow: '0 2px 4px #000' },
+            'gamegear': { bg: '#111', cBg: '#000', cBd: '2px solid #0059a6', cRad: '15px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '4px solid #e60012', fShad: '0 0 20px #0059a6', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'pico': { bg: '#ffeb3b', cBg: '#fff', cBd: '4px solid #00ccff', cRad: '20px', col: '#333', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ff0000', fShad: '0 5px 15px rgba(0,0,0,0.2)', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'naomi': { bg: '#fff', cBg: '#f0f0f0', cBd: '2px solid #ff6600', cRad: '0', col: '#333', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #000', fShad: '0 15px 30px #000', fTrans: 'scale(1.1)', textShadow: 'none' },
 
             // ARCADE
-            'mame2003': { bg: '#000', cBg: '#111', cBd: '2px solid #00ffaa', cRad: '15px', col: '#00ffaa', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: 'inset 0 0 20px #00ffaa, 0 0 20px #fff', fTrans: 'scale(1.05)', textShadow: '0 0 5px #00ffaa' },
-            'fbneo': { bg: '#000', cBg: '#111', cBd: '2px solid #ff0055', cRad: '15px', col: '#ff0055', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: 'inset 0 0 20px #ff0055, 0 0 20px #fff', fTrans: 'scale(1.05)', textShadow: '0 0 5px #ff0055' },
-            'neogeo': { bg: '#111', cBg: '#000', cBd: '2px solid #fff', cRad: '0', col: '#ff0000', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #0059a6', fShad: '0 0 25px #ff0000', fTrans: 'scale(1.1)', textShadow: '0 0 5px #ff0000' },
+            'mame2003': { bg: '#000', cBg: '#111', cBd: '2px solid #00ffaa', cRad: '15px', col: '#00ffaa', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: 'inset 0 0 20px #00ffaa, 0 0 20px #fff', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'fbneo': { bg: '#000', cBg: '#111', cBd: '2px solid #ff0055', cRad: '15px', col: '#ff0055', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: 'inset 0 0 20px #ff0055, 0 0 20px #fff', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'neogeo': { bg: '#111', cBg: '#000', cBd: '2px solid #fff', cRad: '0', col: '#ff0000', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #0059a6', fShad: '0 0 25px #ff0000', fTrans: 'scale(1.1)', textShadow: 'none' },
 
             // COMPUTERS & OBSCURITIES
             'c64': { bg: '#4040E0', cBg: '#4040E0', cBd: '4px solid #A0A0FF', cRad: '0', col: '#A0A0FF', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 15px #fff', fTrans: 'scale(1.05)', textShadow: 'none' },
             'amiga': { bg: '#0055aa', cBg: '#ccc', cBd: '2px solid #fff', cRad: '0', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ff8800', fShad: '0 10px 20px #000', fTrans: 'scale(1.05)', textShadow: 'none' },
             'mac': { bg: '#e0e0e0', cBg: '#fff', cBd: '2px solid #000', cRad: '0', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #000', fShad: '4px 4px 0px #000', fTrans: 'scale(1.05)', textShadow: 'none' },
             'atari2600': { bg: 'repeating-linear-gradient(to right, #4a2e15, #4a2e15 10px, #3a220d 10px, #3a220d 20px)', cBg: '#111', cBd: '2px solid #c0c0c0', cRad: '0', col: '#ffd700', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ffd700', fShad: '0 10px 20px #000', fTrans: 'scale(1.05)', textShadow: '0 2px 4px #000' },
-            'vectrex': { bg: '#000', cBg: '#000', cBd: '2px solid #fff', cRad: '0', col: '#fff', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 25px #fff, inset 0 0 10px #fff', fTrans: 'scale(1.05)', textShadow: '0 0 5px #fff' },
+            'vectrex': { bg: '#000', cBg: '#000', cBd: '2px solid #fff', cRad: '0', col: '#fff', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 25px #fff, inset 0 0 10px #fff', fTrans: 'scale(1.05)', textShadow: 'none' },
             'flash': { bg: 'linear-gradient(to bottom, #ffffff, #cccccc)', cBg: '#f0f8ff', cBd: '1px solid #999', cRad: '12px', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #0059a6', fShad: '0 10px 20px rgba(0,0,0,0.3)', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'wswan': { bg: '#e6e6e6', cBg: '#ccc', cBd: '2px solid #333', cRad: '12px', col: '#333', font: 'sans-serif', lay: 'grid', fOut: '4px solid #000', fShad: '0 5px 15px rgba(0,0,0,0.3)', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'ngp': { bg: '#silver', cBg: '#fff', cBd: '2px solid #333', cRad: '8px', col: '#333', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ff0000', fShad: '0 10px 20px rgba(0,0,0,0.4)', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'fmtowns': { bg: '#808080', cBg: '#c0c0c0', cBd: '2px solid #000', cRad: '0', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '3px solid #00aa00', fShad: '0 5px 10px #000', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'pcfx': { bg: '#fff', cBg: '#f0f0f0', cBd: '2px solid #ccc', cRad: '0', col: '#000', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #0059a6', fShad: '0 10px 20px rgba(0,0,0,0.5)', fTrans: 'scale(1.1)', textShadow: 'none' },
+            'zx81': { bg: '#fff', cBg: '#000', cBd: '4px solid #000', cRad: '0', col: '#fff', font: 'monospace', lay: 'grid', fOut: '4px solid #888', fShad: '0 5px 10px #000', fTrans: 'scale(1.05)', textShadow: 'none' },
         };
 
         // UI Routing
@@ -586,7 +613,13 @@
                     }
                     cursor.continue();
                 } else {
-                    games.sort((a, b) => (b.favorite === true) - (a.favorite === true));
+                    // Sorting by custom Drag & Drop Index or default Favorites/ID
+                    games.sort((a, b) => {
+                        if (a.favorite !== b.favorite) return (b.favorite === true) - (a.favorite === true);
+                        const aSort = a.sortIndex !== undefined ? a.sortIndex : a.id;
+                        const bSort = b.sortIndex !== undefined ? b.sortIndex : b.id;
+                        return bSort - aSort;
+                    });
                     
                     window.requestAnimationFrame(() => {
                         grid.innerHTML = '';
@@ -603,7 +636,13 @@
                             const safeName = game.name.replace(/'/g, "\\'");
 
                             grid.innerHTML += `
-                                <div class="theme-card" data-id="${game.id}" data-index="${index}" onclick="playFromLibrary(${game.id}, '${safeName}')" onmouseenter="setDynamicTitle('${safeName}')">
+                                <div class="theme-card" draggable="true" data-id="${game.id}" data-index="${index}" 
+                                    onclick="if(!window.isDragging) playFromLibrary(${game.id}, '${safeName}')" 
+                                    onmouseenter="setDynamicTitle('${safeName}')"
+                                    ondragstart="handleDragStart(event, ${game.id})"
+                                    ondragover="handleDragOver(event)"
+                                    ondrop="handleDrop(event, ${game.id})"
+                                    ondragleave="handleDragLeave(event)">
                                     <button class="card-btn gear-btn" onclick="openGameManager(${game.id}, event)" title="Manage Title">⚙️</button>
                                     <button class="card-btn fav-btn ${favClass}" onclick="toggleFavorite(${game.id}, event)">★</button>
                                     ${coverHtml}
@@ -620,6 +659,62 @@
                 }
             };
         }
+
+        // --------------------------------------------------------
+        // DRAG AND DROP LIBRARY ORGANIZER
+        // --------------------------------------------------------
+        let draggedGameId = null;
+        window.isDragging = false;
+
+        window.handleDragStart = function(e, id) {
+            draggedGameId = id;
+            e.dataTransfer.effectAllowed = "move";
+            e.target.style.opacity = '0.5';
+            setTimeout(() => window.isDragging = true, 50);
+        };
+
+        window.handleDragOver = function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            const card = e.target.closest('.theme-card');
+            if (card && card.dataset.id != draggedGameId) card.classList.add('drag-over');
+        };
+
+        window.handleDragLeave = function(e) {
+            const card = e.target.closest('.theme-card');
+            if (card) card.classList.remove('drag-over');
+        };
+
+        window.handleDrop = function(e, targetId) {
+            e.preventDefault();
+            const card = e.target.closest('.theme-card');
+            if (card) card.classList.remove('drag-over');
+            
+            setTimeout(() => window.isDragging = false, 100);
+            if(draggedGameId === null || draggedGameId === targetId) return;
+
+            const tx = db.transaction("games", "readwrite");
+            const store = tx.objectStore("games");
+            
+            store.get(draggedGameId).onsuccess = (e1) => {
+                const sourceGame = e1.target.result;
+                store.get(targetId).onsuccess = (e2) => {
+                    const targetGame = e2.target.result;
+                    if(!sourceGame || !targetGame) return;
+
+                    // Swap Sort Indexes
+                    const srcIndex = sourceGame.sortIndex !== undefined ? sourceGame.sortIndex : sourceGame.id;
+                    const tgtIndex = targetGame.sortIndex !== undefined ? targetGame.sortIndex : targetGame.id;
+
+                    sourceGame.sortIndex = tgtIndex;
+                    targetGame.sortIndex = srcIndex;
+
+                    store.put(sourceGame);
+                    store.put(targetGame).onsuccess = () => renderDashboardGrid();
+                };
+            };
+            draggedGameId = null;
+        };
 
         // --------------------------------------------------------
         // INLINE GAME MANAGER (EDIT / DELETE)
@@ -741,7 +836,10 @@
             }
 
             const tx = db.transaction("games", "readwrite");
-            tx.objectStore("games").put({ name: file.name, core: core, type: 'game', data: file, isChunked: false, coverBase64: coverBase64, favorite: false }).onsuccess = (e) => { 
+            tx.objectStore("games").put({ 
+                name: file.name, core: core, type: 'game', data: file, 
+                isChunked: false, coverBase64: coverBase64, favorite: false, sortIndex: Date.now() 
+            }).onsuccess = (e) => { 
                 document.getElementById('upload-modal').style.display = 'none';
                 progressEl.innerText = ""; fileInput.value = ''; coverInput.value = '';
                 
@@ -806,6 +904,240 @@
         });
 
         // --------------------------------------------------------
+        // RESTORED X86 WORKSTATION JAVASCRIPT
+        // --------------------------------------------------------
+        window.saveV86Core = function(type) {
+            const fileInput = document.getElementById(`v86-${type}`);
+            const file = fileInput.files[0]; 
+            if(!file) return alert("File parameter missing. Please select a file first.");
+            
+            let foundId = null;
+            db.transaction("games", "readonly").objectStore("games").openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) { 
+                    if(cursor.value.type === 'system' && cursor.value.coreType === type) {
+                        foundId = cursor.value.id;
+                    }
+                    cursor.continue(); 
+                } else {
+                    if (foundId) {
+                        if (!confirm(`You already have a ${type.toUpperCase()} file injected. Replace it?`)) { fileInput.value = ''; return; }
+                        db.transaction("games", "readwrite").objectStore("games").delete(foundId).onsuccess = () => insertCore();
+                    } else insertCore();
+                }
+            };
+            function insertCore() {
+                const tx = db.transaction("games", "readwrite");
+                tx.objectStore("games").put({ name: `v86_${type}_sys`, type: 'system', coreType: type, data: file, favorite: false });
+                tx.oncomplete = () => { alert(`${type.toUpperCase()} core injected successfully.`); checkV86Status(); fileInput.value = ''; };
+            }
+        };
+
+        window.checkV86Status = function() {
+            let found = {};
+            db.transaction("games", "readonly").objectStore("games").openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) { 
+                    if(cursor.value.type === 'system') found[cursor.value.coreType] = true;
+                    cursor.continue(); 
+                } else {
+                    ['wasm','bios','vga'].forEach(t => { 
+                        const el = document.getElementById(`stat-${t}`); 
+                        if(el) { 
+                            el.innerText = found[t] ? "🟢 READY" : "🔴 MISSING"; 
+                            el.className = found[t] ? "sys-status status-ready" : "sys-status status-missing"; 
+                        }
+                    });
+                }
+            };
+        };
+
+        window.bootOS = async function(snapshotHdaBlob = null, snapshotRamBlob = null) {
+            let coreFiles = {};
+            await new Promise(r => {
+                db.transaction("games", "readonly").objectStore("games").openCursor().onsuccess = (e) => {
+                    const c = e.target.result; 
+                    if(c) { if(c.value.type==='system') coreFiles[c.value.coreType] = c.value.data; c.continue(); } else r();
+                }
+            });
+            
+            if(!coreFiles.wasm || !coreFiles.bios || !coreFiles.vga) {
+                return alert("🛑 BOOT SEQUENCE HALTED 🛑\n\nThe x86 Workstation cannot boot because its physical hardware definitions are missing.\n\nYou MUST download and inject all three core files into the top grid before you can boot an OS.");
+            }
+
+            const file = document.getElementById('os-file').files[0]; 
+            const hddFile = document.getElementById('hdd-file').files[0];
+            
+            if(!file && !hddFile && !snapshotHdaBlob) return alert("You must select at least a Boot Media (ISO) or a Target HDD to boot.");
+            if (emulatorInstance) stopOS();
+            
+            document.getElementById('v86-loader').style.display = 'flex';
+            if (window.activeOsUrl) { URL.revokeObjectURL(window.activeOsUrl); window.activeOsUrl = null; }
+            if (window.activeHddUrl) { URL.revokeObjectURL(window.activeHddUrl); window.activeHddUrl = null; }
+
+            const biosBuffer = await coreFiles.bios.arrayBuffer();
+            const vgaBuffer = await coreFiles.vga.arrayBuffer();
+
+            if (!window.coreUrlsCache.wasm) window.coreUrlsCache.wasm = URL.createObjectURL(coreFiles.wasm);
+            if (file) window.activeOsUrl = URL.createObjectURL(file);
+            if (snapshotHdaBlob) window.activeHddUrl = URL.createObjectURL(snapshotHdaBlob);
+            else if (hddFile) window.activeHddUrl = URL.createObjectURL(hddFile);
+
+            const cfg = { 
+                wasm_path: window.coreUrlsCache.wasm, 
+                bios: { buffer: biosBuffer }, 
+                vga_bios: { buffer: vgaBuffer }, 
+                memory_size: 1024 * 1024 * 1024,      
+                vga_memory_size: 8 * 1024 * 1024,   
+                screen_container: document.getElementById("os-screen_container"), 
+                autostart: true, 
+                preserve_aspect_ratio: true, 
+                mouse_state: true, 
+                listen_to_mouse_clicks: true, 
+                fs_throttle_bad_ticks: true
+            };
+            
+            if (file) {
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (ext === 'iso') cfg.cdrom = { url: window.activeOsUrl, async: true, size: file.size }; 
+                else if (['img','fd','dsk','raw'].includes(ext)) cfg.fda = { url: window.activeOsUrl, async: true, size: file.size }; 
+                else cfg.hda = { url: window.activeOsUrl, async: true, size: file.size };
+            }
+            if (window.activeHddUrl) {
+                cfg.hda = { url: window.activeHddUrl, async: true, size: snapshotHdaBlob ? snapshotHdaBlob.size : hddFile.size };
+            }
+            
+            try { emulatorInstance = new window.V86(cfg); } 
+            catch (err) { document.getElementById('v86-loader').style.display = 'none'; return alert("Fatal Hypervisor Crash."); }
+
+            emulatorInstance.add_listener("emulator-ready", async function() {
+                setTimeout(() => document.getElementById('v86-loader').style.display = 'none', 5000);
+                if (snapshotRamBlob) {
+                    try {
+                        let buf = await (snapshotRamBlob instanceof Blob ? snapshotRamBlob.arrayBuffer() : snapshotRamBlob);
+                        emulatorInstance.restore_state(buf);
+                    } catch (e) { alert("Failed to restore RAM state after reboot."); }
+                }
+            });
+        };
+
+        window.stopOS = function() { 
+            if (emulatorInstance && confirm("Power off the workstation?")) { 
+                emulatorInstance.stop(); emulatorInstance.destroy(); emulatorInstance = null;
+                if (window.activeOsUrl) { URL.revokeObjectURL(window.activeOsUrl); window.activeOsUrl = null; }
+                if (window.activeHddUrl) { URL.revokeObjectURL(window.activeHddUrl); window.activeHddUrl = null; }
+                const container = document.getElementById("os-screen_container");
+                container.innerHTML = '<div style="white-space: pre; font: 14px monospace; line-height: 14px; color:#fff;"></div><canvas style="display: none"></canvas>';
+                document.getElementById('v86-boot-status').innerText = "";
+                document.getElementById('v86-loader').style.display = 'none';
+            } 
+        };
+
+        window.renderSnapshots = function() {
+            const list = document.getElementById('snapshot-list'); 
+            if(!list) return;
+            list.innerHTML = '';
+            let items = [];
+            db.transaction("games", "readonly").objectStore("games").openCursor().onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    if (cursor.value.type === 'os_state') items.push(cursor.value);
+                    cursor.continue();
+                } else {
+                    items.sort((a, b) => (b.favorite === true) - (a.favorite === true));
+                    if (items.length === 0) return list.innerHTML = '<div style="color:#666; font-size:11px; text-align:center; margin-top:20px;">No snapshots captured.</div>';
+                    
+                    items.forEach(item => {
+                        let sizeMb = '0.00';
+                        if (item.data && item.data.ram) {
+                            let totalBytes = item.data.ram.byteLength || item.data.ram.size || 0;
+                            if (item.data.hda && item.data.hda.size) totalBytes += item.data.hda.size;
+                            sizeMb = (totalBytes / (1024*1024)).toFixed(2);
+                        }
+                        const isAutosave = (item.name === 'AUTOSAVE_X86');
+                        list.innerHTML += `
+                            <div class="lib-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                                <div class="lib-item-info">
+                                    <span class="lib-title" style="color:${isAutosave?'var(--warn)':'var(--success)'}; font-size: 13px;">${item.name}</span>
+                                    <span class="lib-core" style="color:#aaa;">${sizeMb} MB SNAPSHOT</span>
+                                </div>
+                                <div class="lib-actions" style="display:flex; gap:5px; flex-wrap: wrap;">
+                                    <button class="lib-btn" style="background:var(--success); color:#000; flex:1;" onclick="loadOSState(${item.id})">▶ Load</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            };
+        };
+
+        window.createNewOSState = async function() {
+            if (!emulatorInstance) return alert("You must Boot a machine before you can capture its state.");
+            customPrompt("Enter a name for this snapshot:", "", async (name) => {
+                if (!name) return;
+                document.getElementById('v86-loader').style.display = 'flex';
+                setTimeout(async () => {
+                    try {
+                        const ramState = await emulatorInstance.save_state();
+                        let hdaState = null;
+                        if (emulatorInstance.disk_images && emulatorInstance.disk_images.hda) {
+                            hdaState = await new Promise((resolve) => {
+                                emulatorInstance.get_disk_image("hda", (err, data) => { resolve(err ? null : new Blob([data], { type: "application/octet-stream" })); });
+                            });
+                        }
+                        const tx = db.transaction("games", "readwrite");
+                        tx.objectStore("games").put({ name: name, type: 'os_state', data: { ram: ramState, hda: hdaState }, favorite: false });
+                        tx.oncomplete = () => { renderSnapshots(); };
+                    } catch (e) { alert("Failed to capture snapshot."); } 
+                    finally { document.getElementById('v86-loader').style.display = 'none'; }
+                }, 100);
+            });
+        };
+
+        window.loadOSState = async function(id) {
+            try {
+                const item = await new Promise((resolve) => {
+                    db.transaction("games", "readonly").objectStore("games").get(id).onsuccess = (e) => resolve(e.target.result);
+                });
+                if (!item || !item.data) return;
+                
+                let ramData = item.data.ram !== undefined ? item.data.ram : item.data;
+                let hdaData = item.data.hda || null;
+
+                if (hdaData) {
+                    if (!confirm("This snapshot contains full Hard Drive data. Restoring it will REBOOT the system to this exact point in time. Continue?")) return;
+                    await bootOS(hdaData, ramData);
+                } else {
+                    if (!emulatorInstance) return alert("You must Boot the exact ISO/Drive first to establish hardware boundaries before injecting a RAM-only state.");
+                    let dataBuf = await (ramData instanceof Blob ? ramData.arrayBuffer() : ramData);
+                    emulatorInstance.restore_state(dataBuf);
+                    alert(`State '${item.name}' restored successfully.`);
+                }
+            } catch (err) { alert("Failed to restore state."); }
+        };
+
+        let promptCallback = null;
+        window.customPrompt = function(title, defaultText, callback) {
+            document.getElementById('prompt-title').innerText = title;
+            const input = document.getElementById('prompt-input');
+            input.value = defaultText || '';
+            document.getElementById('custom-prompt').style.display = 'flex';
+            input.focus();
+            promptCallback = callback;
+        };
+        window.closePrompt = function() {
+            document.getElementById('custom-prompt').style.display = 'none';
+            if(promptCallback) promptCallback(null);
+            promptCallback = null;
+        };
+        window.submitPrompt = function() {
+            const val = document.getElementById('prompt-input').value;
+            document.getElementById('custom-prompt').style.display = 'none';
+            if(promptCallback) promptCallback(val);
+            promptCallback = null;
+        };
+
+        // --------------------------------------------------------
         // GAMEPAD FRONTEND NAVIGATION LOGIC
         // --------------------------------------------------------
         let gamepadIndex = null;
@@ -867,8 +1199,10 @@
                     }
 
                     if (select && focusedCardIndex >= 0) {
-                        cards[focusedCardIndex].click();
-                        lastGamepadEvent = Date.now() + 500; 
+                        if (!window.isDragging) {
+                            cards[focusedCardIndex].click();
+                            lastGamepadEvent = Date.now() + 500; 
+                        }
                     }
                     
                     if (manage && focusedCardIndex >= 0) {
