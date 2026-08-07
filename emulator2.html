@@ -61,11 +61,9 @@
         /* THEMED CARDS */
         .viewer-grid { flex: 1; z-index: 10; position: relative; padding: 20px; }
         
-        /* Layout: GRID */
         .viewer-grid.layout-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; align-content: flex-start; overflow-y: auto; overflow-x: hidden; }
         .layout-grid .theme-card h4 { display: block; }
 
-        /* Layout: HORIZONTAL (XMB/Switch style) */
         .viewer-grid.layout-horizontal { display: flex; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; align-items: center; gap: 25px; padding: 40px; }
         .layout-horizontal .theme-card { flex: 0 0 240px; margin: 0; }
         .layout-horizontal .theme-card h4, .layout-horizontal .card-meta { display: none; }
@@ -89,12 +87,18 @@
         .viewer-cover { width: 100%; height: 200px; object-fit: cover; border-radius: calc(var(--theme-card-radius, 8px) - 4px); background: #000; box-shadow: 0 4px 8px rgba(0,0,0,0.6); transition: 0.2s; }
         .layout-horizontal .viewer-cover { height: 240px; }
         
-        .theme-card h4 { margin: 5px 0 0 0; font-size: 13px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 25px; color: var(--theme-color, #fff);}
+        .theme-card h4 { margin: 5px 0 0 0; font-size: 13px; text-shadow: var(--theme-text-shadow, 0 2px 4px rgba(0,0,0,0.8)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 25px; color: var(--theme-color, #fff);}
         .card-meta { font-size: 10px; opacity: 0.7; display: flex; justify-content: space-between; margin-top: auto; font-family: monospace; }
         
-        .fav-btn { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.7); border: 1px solid #444; border-radius: 50%; color: #666; width: 28px; height: 28px; cursor: pointer; transition: 0.2s; z-index: 5; display: flex; align-items: center; justify-content: center; }
-        .fav-btn:hover { color: #fff; transform: scale(1.1); background: #000; }
-        .fav-btn.active { color: var(--warn); border-color: var(--warn); text-shadow: 0 0 8px rgba(255, 215, 0, 0.6); }
+        /* CARD INLINE MANAGEMENT BUTTONS */
+        .card-btn { position: absolute; top: 15px; background: rgba(0,0,0,0.7); border: 1px solid #444; border-radius: 50%; color: #fff; width: 28px; height: 28px; cursor: pointer; transition: 0.2s; z-index: 5; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .fav-btn { right: 15px; color: #666; }
+        .gear-btn { left: 15px; opacity: 0; }
+        .theme-card:hover .gear-btn, .theme-card.gamepad-focus .gear-btn { opacity: 1; }
+        
+        .card-btn:hover { color: #fff; transform: scale(1.1); background: #000; }
+        .fav-btn.active { color: var(--warn); border-color: var(--warn); text-shadow: 0 0 8px rgba(255, 215, 0, 0.6); opacity: 1;}
+        .gear-btn:hover { border-color: var(--accent); color: var(--accent); }
 
         /* X86 SIDEBAR & PANELS */
         .sidebar-panel { width: 340px; background: var(--panel); border-radius: 8px; border: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; gap: 10px; }
@@ -317,6 +321,29 @@
         </div>
     </div>
 
+    <!-- GAME MANAGER MODAL (EDIT/DELETE) -->
+    <div id="game-manager-modal" class="modal">
+        <div class="modal-content" style="width: 400px; text-align: center;">
+            <h2 style="margin-top:0; color:var(--accent); border-bottom:1px solid #333; padding-bottom:10px;">⚙️ Manage Library Title</h2>
+            
+            <div style="position:relative; width: 220px; height: 220px; margin: 0 auto 15px auto; cursor:pointer;" onclick="document.getElementById('edit-cover-upload').click()">
+                <img id="manager-cover-preview" src="" style="width:100%; height:100%; object-fit:cover; border-radius:8px; border:2px dashed #555;">
+                <div style="position:absolute; bottom:0; left:0; width:100%; background:rgba(0,0,0,0.8); color:#fff; font-size:12px; padding:8px; border-radius:0 0 8px 8px; font-weight:bold;">📸 Click to change cover</div>
+            </div>
+            <input type="file" id="edit-cover-upload" accept="image/*" style="display:none" onchange="previewManagerCover(this)">
+            
+            <label style="font-size:11px; color:var(--accent); text-align:left; display:block; margin-bottom:4px; font-weight:bold;">TITLE / DISPLAY NAME</label>
+            <input type="text" id="manager-name-input" style="width:100%; box-sizing:border-box; margin-bottom:25px; padding: 12px; font-size: 16px; text-align: center; border-color:#555;">
+            
+            <div style="display:flex; gap: 10px;">
+                <button class="close-modal" style="background:#333; color:white; flex: 1;">Cancel</button>
+                <button onclick="saveGameManager()" style="background:var(--success); color:#000; flex: 1;">Save Changes</button>
+            </div>
+            
+            <button onclick="deleteFromManager()" style="background:transparent; border:1px solid var(--danger); color:var(--danger); width:100%; margin-top:15px; padding: 10px;">🗑️ Delete Game Permanently</button>
+        </div>
+    </div>
+
     <!-- STORAGE MODAL -->
     <div id="storage-modal" class="modal">
         <div class="modal-content" style="max-height: 80vh;">
@@ -379,8 +406,6 @@
         // --------------------------------------------------------
         // MEGA DICTIONARY: 74 CONSOLE-SPECIFIC DASHBOARD THEMES
         // --------------------------------------------------------
-        // Structure: bg(background), cBg(card bg), cBd(card border), cRad(border-radius), col(text color), font, lay(grid/horizontal), fOut(focus outline), fShad(focus shadow), fTrans(focus transform)
-        
         const CORE_NAMES = {
             'all': 'All Titles', 'favorites': '⭐ Favorites',
             'psx': 'PlayStation 1', 'psp': 'PlayStation Portable', 'n64': 'Nintendo 64', 'nes': 'NES', 'snes': 'Super Nintendo',
@@ -401,98 +426,43 @@
         };
 
         const THEMES = {
-            'all': { bg: '#0b0c10', cBg: 'rgba(20,24,31,0.8)', cBd: '1px solid #333', cRad: '8px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '3px solid #66fcf1', fShad: '0 15px 25px rgba(0,0,0,0.6)', fTrans: 'scale(1.05) translateY(-5px)' },
-            'favorites': { bg: 'radial-gradient(ellipse at top, #332a00, #0b0c10)', cBg: '#1a1810', cBd: '1px solid #ffd700', cRad: '8px', col: '#ffd700', font: 'sans-serif', lay: 'grid', fOut: '3px solid #ffd700', fShad: '0 15px 30px rgba(255,215,0,0.4)', fTrans: 'scale(1.05) translateY(-5px)' },
+            // XBOX 360 / NXE / METRO STYLE FOR 'ALL TITLES'
+            'all': { bg: 'radial-gradient(ellipse at bottom right, #8fc31f 0%, #e0e5ec 50%, #ffffff 100%)', cBg: '#fff', cBd: '1px solid #ccc', cRad: '8px', col: '#555', font: '"Segoe UI", sans-serif', lay: 'grid', fOut: '4px solid #8fc31f', fShad: '0 15px 30px rgba(143,195,31,0.5)', fTrans: 'scale(1.08)' },
+            'favorites': { bg: 'radial-gradient(ellipse at top, #332a00, #0b0c10)', cBg: '#1a1810', cBd: '1px solid #ffd700', cRad: '8px', col: '#ffd700', font: 'sans-serif', lay: 'grid', fOut: '3px solid #ffd700', fShad: '0 15px 30px rgba(255,215,0,0.4)', fTrans: 'scale(1.05) translateY(-5px)', textShadow: 'none' },
             
             // SONY
-            'psx': { bg: 'radial-gradient(circle at center, #000044 0%, #000000 100%)', cBg: 'rgba(128,128,128,0.2)', cBd: '2px solid #555', cRad: '4px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '3px solid #00f', fShad: '0 0 20px #00f', fTrans: 'scale(1.05)' },
-            'psp': { bg: 'linear-gradient(135deg, #0f80cc, #042542)', cBg: 'transparent', cBd: 'none', cRad: '4px', col: '#fff', font: 'sans-serif', lay: 'horizontal', fOut: '2px solid #fff', fShad: '0 25px 50px rgba(0,0,0,0.8)', fTrans: 'scale(1.15)' },
+            'psx': { bg: 'radial-gradient(circle at center, #000044 0%, #000000 100%)', cBg: 'rgba(128,128,128,0.2)', cBd: '2px solid #555', cRad: '4px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '3px solid #00f', fShad: '0 0 20px #00f', fTrans: 'scale(1.05)', textShadow: '0 2px 4px #000' },
+            'psp': { bg: 'linear-gradient(135deg, #0f80cc, #042542)', cBg: 'transparent', cBd: 'none', cRad: '4px', col: '#fff', font: 'sans-serif', lay: 'horizontal', fOut: '2px solid #fff', fShad: '0 25px 50px rgba(0,0,0,0.8)', fTrans: 'scale(1.15)', textShadow: '0 2px 4px #000' },
             
             // NINTENDO
-            'nes': { bg: '#808080', cBg: '#000', cBd: '4px solid #000', cRad: '0', col: '#cc0000', font: 'monospace', lay: 'grid', fOut: '4px solid #cc0000', fShad: '0 10px 0px #000', fTrans: 'scale(1.05)' },
-            'snes': { bg: '#b5b6b5', cBg: '#d3d4d5', cBd: '3px solid #5a5a72', cRad: '15px', col: '#5a5a72', font: 'sans-serif', lay: 'grid', fOut: '4px solid #684b82', fShad: '0 10px 20px rgba(0,0,0,0.5)', fTrans: 'scale(1.05)' },
-            'n64': { bg: 'radial-gradient(circle, #222, #000)', cBg: '#333', cBd: '2px solid #e70012', cRad: '12px', col: '#ffcc00', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #009b3a', fShad: '0 15px 30px #000', fTrans: 'scale(1.1)' },
-            'gb': { bg: '#8bac0f', cBg: '#9bbc0f', cBd: '4px solid #0f380f', cRad: '5px', col: '#0f380f', font: 'monospace', lay: 'grid', fOut: '4px solid #0f380f', fShad: '0 0 15px #0f380f', fTrans: 'scale(1.05)' },
-            'gbc': { bg: '#800080', cBg: 'rgba(255,255,255,0.2)', cBd: '2px solid #fff', cRad: '15px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '4px solid #00ff00', fShad: '0 0 20px #00ff00', fTrans: 'scale(1.05)' },
-            'gba': { bg: '#3a2e85', cBg: '#fff', cBd: 'none', cRad: '20px', col: '#3a2e85', font: 'sans-serif', lay: 'horizontal', fOut: '5px solid #fff', fShad: '0 15px 25px rgba(0,0,0,0.8)', fTrans: 'scale(1.1)' },
-            'nds': { bg: '#e6e6e6', cBg: '#fff', cBd: '2px solid #aaa', cRad: '12px', col: '#333', font: 'sans-serif', lay: 'grid', fOut: '4px solid #000', fShad: '0 10px 20px rgba(0,0,0,0.3)', fTrans: 'scale(1.05)' },
-            'vb': { bg: '#000', cBg: '#000', cBd: '2px solid #ff0000', cRad: '0px', col: '#ff0000', font: 'monospace', lay: 'grid', fOut: '4px solid #ff0000', fShad: '0 0 30px #ff0000', fTrans: 'scale(1.05)' },
-            'famicom_disk': { bg: '#8b0000', cBg: '#e6b800', cBd: '3px solid #000', cRad: '4px', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 15px #fff', fTrans: 'scale(1.05)' },
-            'pokemini': { bg: '#ffb3ba', cBg: '#fff', cBd: '2px solid #ff66b2', cRad: '10px', col: '#ff66b2', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ff1493', fShad: '0 5px 15px #ff1493', fTrans: 'scale(1.05)' },
-            'gameandwatch': { bg: '#d3d3d3', cBg: '#a9a9a9', cBd: '3px solid #800000', cRad: '2px', col: '#800000', font: 'monospace', lay: 'grid', fOut: '4px solid #000', fShad: '0 5px 10px #000', fTrans: 'scale(1.05)' },
+            'nes': { bg: '#808080', cBg: '#000', cBd: '4px solid #000', cRad: '0', col: '#cc0000', font: 'monospace', lay: 'grid', fOut: '4px solid #cc0000', fShad: '0 10px 0px #000', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'snes': { bg: '#b5b6b5', cBg: '#d3d4d5', cBd: '3px solid #5a5a72', cRad: '15px', col: '#5a5a72', font: 'sans-serif', lay: 'grid', fOut: '4px solid #684b82', fShad: '0 10px 20px rgba(0,0,0,0.5)', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'n64': { bg: 'radial-gradient(circle, #222, #000)', cBg: '#333', cBd: '2px solid #e70012', cRad: '12px', col: '#ffcc00', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #009b3a', fShad: '0 15px 30px #000', fTrans: 'scale(1.1)', textShadow: '0 2px 4px #000' },
+            'gb': { bg: '#8bac0f', cBg: '#9bbc0f', cBd: '4px solid #0f380f', cRad: '5px', col: '#0f380f', font: 'monospace', lay: 'grid', fOut: '4px solid #0f380f', fShad: '0 0 15px #0f380f', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'gbc': { bg: '#800080', cBg: 'rgba(255,255,255,0.2)', cBd: '2px solid #fff', cRad: '15px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '4px solid #00ff00', fShad: '0 0 20px #00ff00', fTrans: 'scale(1.05)', textShadow: '0 2px 4px #000' },
+            'gba': { bg: '#3a2e85', cBg: '#fff', cBd: 'none', cRad: '20px', col: '#3a2e85', font: 'sans-serif', lay: 'horizontal', fOut: '5px solid #fff', fShad: '0 15px 25px rgba(0,0,0,0.8)', fTrans: 'scale(1.1)', textShadow: '0 2px 4px #000' },
+            'nds': { bg: '#e6e6e6', cBg: '#fff', cBd: '2px solid #aaa', cRad: '12px', col: '#333', font: 'sans-serif', lay: 'grid', fOut: '4px solid #000', fShad: '0 10px 20px rgba(0,0,0,0.3)', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'vb': { bg: '#000', cBg: '#000', cBd: '2px solid #ff0000', cRad: '0px', col: '#ff0000', font: 'monospace', lay: 'grid', fOut: '4px solid #ff0000', fShad: '0 0 30px #ff0000', fTrans: 'scale(1.05)', textShadow: '0 0 5px #ff0000' },
 
             // SEGA
-            'megadrive': { bg: '#000', cBg: '#111', cBd: '2px solid #e00000', cRad: '8px', col: '#e00000', font: 'sans-serif', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 20px #e00000', fTrans: 'scale(1.05)' },
-            'mastersystem': { bg: '#000044', cBg: '#000', cBd: '1px solid #44f', cRad: '0', col: '#fff', font: 'monospace', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 15px #44f', fTrans: 'scale(1.05)' },
-            'saturn': { bg: '#333', cBg: '#222', cBd: '2px solid #1c82c4', cRad: '0', col: '#1c82c4', font: 'sans-serif', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 20px #1c82c4', fTrans: 'scale(1.05)' },
-            'dreamcast': { bg: '#f5f5f5', cBg: '#fff', cBd: '3px solid #ff6600', cRad: '50% 10px 50% 10px', col: '#333', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #0059a6', fShad: '0 10px 20px #ff6600', fTrans: 'scale(1.1) rotate(-1deg)' },
-            'segacd': { bg: '#000', cBg: '#001133', cBd: '2px solid #00ccff', cRad: '5px', col: '#00ccff', font: 'sans-serif', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 20px #00ccff', fTrans: 'scale(1.05)' },
-            'sega32x': { bg: '#1a1a00', cBg: '#333300', cBd: '2px solid #ffcc00', cRad: '8px', col: '#ffcc00', font: 'sans-serif', lay: 'grid', fOut: '3px solid #e00000', fShad: '0 0 20px #e00000', fTrans: 'scale(1.05)' },
-            'sg1000': { bg: '#0059a6', cBg: '#fff', cBd: '2px solid #000', cRad: '4px', col: '#0059a6', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ff0000', fShad: '0 0 15px #ff0000', fTrans: 'scale(1.05)' },
-            'gamegear': { bg: '#111', cBg: '#000', cBd: '2px solid #0059a6', cRad: '15px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '4px solid #e60012', fShad: '0 0 20px #0059a6', fTrans: 'scale(1.05)' },
-            'naomi': { bg: '#fff', cBg: '#f0f0f0', cBd: '2px solid #ff6600', cRad: '0', col: '#ff6600', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #000', fShad: '0 15px 30px #000', fTrans: 'scale(1.1)' },
-            'atomiswave': { bg: '#cc0000', cBg: '#fff', cBd: '2px solid #000', cRad: '0', col: '#000', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #fff', fShad: '0 15px 30px #000', fTrans: 'scale(1.1)' },
-            'pico': { bg: '#ffeb3b', cBg: '#fff', cBd: '4px solid #00ccff', cRad: '20px', col: '#ff0000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ff0000', fShad: '0 5px 15px rgba(0,0,0,0.2)', fTrans: 'scale(1.05)' },
+            'megadrive': { bg: '#000', cBg: '#111', cBd: '2px solid #e00000', cRad: '8px', col: '#e00000', font: 'sans-serif', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 20px #e00000', fTrans: 'scale(1.05)', textShadow: '0 0 5px #e00000' },
+            'mastersystem': { bg: '#000044', cBg: '#000', cBd: '1px solid #44f', cRad: '0', col: '#fff', font: 'monospace', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 15px #44f', fTrans: 'scale(1.05)', textShadow: '0 2px 4px #000' },
+            'saturn': { bg: '#333', cBg: '#222', cBd: '2px solid #1c82c4', cRad: '0', col: '#1c82c4', font: 'sans-serif', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 20px #1c82c4', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'dreamcast': { bg: '#f5f5f5', cBg: '#fff', cBd: '3px solid #ff6600', cRad: '50% 10px 50% 10px', col: '#333', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #0059a6', fShad: '0 10px 20px #ff6600', fTrans: 'scale(1.1) rotate(-1deg)', textShadow: 'none' },
+            'gamegear': { bg: '#111', cBg: '#000', cBd: '2px solid #0059a6', cRad: '15px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '4px solid #e60012', fShad: '0 0 20px #0059a6', fTrans: 'scale(1.05)', textShadow: '0 2px 4px #000' },
 
             // ARCADE
-            'mame2003': { bg: '#000', cBg: '#111', cBd: '2px solid #00ffaa', cRad: '15px', col: '#00ffaa', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: 'inset 0 0 20px #00ffaa, 0 0 20px #fff', fTrans: 'scale(1.05)' },
-            'fbneo': { bg: '#000', cBg: '#111', cBd: '2px solid #ff0055', cRad: '15px', col: '#ff0055', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: 'inset 0 0 20px #ff0055, 0 0 20px #fff', fTrans: 'scale(1.05)' },
-            'fba': { bg: '#000', cBg: '#111', cBd: '2px solid #ff6600', cRad: '15px', col: '#ff6600', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: 'inset 0 0 20px #ff6600, 0 0 20px #fff', fTrans: 'scale(1.05)' },
-            'neogeo': { bg: '#111', cBg: '#000', cBd: '2px solid #fff', cRad: '0', col: '#ff0000', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #0059a6', fShad: '0 0 25px #ff0000', fTrans: 'scale(1.1)' },
-            'neogeocd': { bg: '#111', cBg: '#222', cBd: '2px solid #0059a6', cRad: '0', col: '#fff', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #ff0000', fShad: '0 0 25px #0059a6', fTrans: 'scale(1.1)' },
-            'daphne': { bg: '#000022', cBg: '#000', cBd: '1px solid #00ffff', cRad: '0', col: '#00ffff', font: 'monospace', lay: 'grid', fOut: '3px solid #ff00ff', fShad: '0 0 30px #00ffff', fTrans: 'scale(1.05)' },
+            'mame2003': { bg: '#000', cBg: '#111', cBd: '2px solid #00ffaa', cRad: '15px', col: '#00ffaa', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: 'inset 0 0 20px #00ffaa, 0 0 20px #fff', fTrans: 'scale(1.05)', textShadow: '0 0 5px #00ffaa' },
+            'fbneo': { bg: '#000', cBg: '#111', cBd: '2px solid #ff0055', cRad: '15px', col: '#ff0055', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: 'inset 0 0 20px #ff0055, 0 0 20px #fff', fTrans: 'scale(1.05)', textShadow: '0 0 5px #ff0055' },
+            'neogeo': { bg: '#111', cBg: '#000', cBd: '2px solid #fff', cRad: '0', col: '#ff0000', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #0059a6', fShad: '0 0 25px #ff0000', fTrans: 'scale(1.1)', textShadow: '0 0 5px #ff0000' },
 
-            // EARLY COMPUTERS & DOS
-            'dos': { bg: '#000', cBg: '#000', cBd: '1px solid #aaa', cRad: '0', col: '#aaa', font: 'monospace', lay: 'grid', fOut: '2px solid #fff', fShad: 'none', fTrans: 'scale(1.02)' },
-            'scummvm': { bg: '#000', cBg: '#1a0033', cBd: '2px solid #00ff00', cRad: '4px', col: '#ff00ff', font: 'monospace', lay: 'grid', fOut: '3px solid #00ff00', fShad: '0 0 15px #ff00ff', fTrans: 'scale(1.05)' },
-            'c64': { bg: '#4040E0', cBg: '#4040E0', cBd: '4px solid #A0A0FF', cRad: '0', col: '#A0A0FF', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 15px #fff', fTrans: 'scale(1.05)' },
-            'amiga': { bg: '#0055aa', cBg: '#ccc', cBd: '2px solid #fff', cRad: '0', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ff8800', fShad: '0 10px 20px #000', fTrans: 'scale(1.05)' },
-            'mac': { bg: 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'8\'><rect width=\'4\' height=\'4\' fill=\'%23fff\'/><rect x=\'4\' y=\'4\' width=\'4\' height=\'4\' fill=\'%23fff\'/><rect x=\'4\' width=\'4\' height=\'4\' fill=\'%23000\'/><rect y=\'4\' width=\'4\' height=\'4\' fill=\'%23000\'/></svg>")', cBg: '#fff', cBd: '2px solid #000', cRad: '0', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #000', fShad: '4px 4px 0px #000', fTrans: 'scale(1.05)' },
-            'apple2': { bg: '#000', cBg: '#000', cBd: '2px solid #33ff33', cRad: '0', col: '#33ff33', font: 'monospace', lay: 'grid', fOut: '4px solid #33ff33', fShad: '0 0 15px #33ff33', fTrans: 'scale(1.05)' },
-            'pc88': { bg: '#000033', cBg: '#000', cBd: '1px solid #00ffaa', cRad: '0', col: '#00ffaa', font: 'monospace', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 10px #00ffaa', fTrans: 'scale(1.05)' },
-            'pc98': { bg: '#000', cBg: '#111', cBd: '1px solid #fff', cRad: '0', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '3px solid #00ffaa', fShad: '0 0 15px #00ffaa', fTrans: 'scale(1.05)' },
-            'x68000': { bg: '#1a1a1a', cBg: '#000', cBd: '2px solid #e00000', cRad: '0', col: '#e00000', font: 'sans-serif', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 15px #e00000', fTrans: 'scale(1.05)' },
-            'x1': { bg: '#330000', cBg: '#000', cBd: '1px solid #ff3333', cRad: '0', col: '#ff3333', font: 'monospace', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 10px #ff3333', fTrans: 'scale(1.05)' },
-            'fmtowns': { bg: '#808080', cBg: '#c0c0c0', cBd: '2px solid #000', cRad: '0', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '3px solid #00aa00', fShad: '0 5px 10px #000', fTrans: 'scale(1.05)' },
-            'cpc': { bg: '#0000ff', cBg: '#ffff00', cBd: '4px solid #000', cRad: '0', col: '#000', font: 'monospace', lay: 'grid', fOut: '4px solid #ff0000', fShad: '0 0 10px #000', fTrans: 'scale(1.05)' },
-            'msx': { bg: '#0000aa', cBg: '#fff', cBd: '2px solid #000', cRad: '0', col: '#0000aa', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 15px #fff', fTrans: 'scale(1.05)' },
-            'zxspectrum': { bg: '#000', cBg: '#222', cBd: '2px solid #ff0000', cRad: '0', col: '#ffff00', font: 'monospace', lay: 'grid', fOut: '4px solid #00ffff', fShad: '0 0 20px #ffff00', fTrans: 'scale(1.05)' },
-            'zx81': { bg: '#fff', cBg: '#000', cBd: '4px solid #000', cRad: '0', col: '#fff', font: 'monospace', lay: 'grid', fOut: '4px solid #888', fShad: '0 5px 10px #000', fTrans: 'scale(1.05)' },
-            'vic20': { bg: '#fff', cBg: '#fff', cBd: '4px solid #00ffff', cRad: '0', col: '#0000ff', font: 'monospace', lay: 'grid', fOut: '4px solid #0000ff', fShad: '0 0 15px #00ffff', fTrans: 'scale(1.05)' },
-
-            // ATARI & WOODGRAIN
-            'atari2600': { bg: 'repeating-linear-gradient(to right, #4a2e15, #4a2e15 10px, #3a220d 10px, #3a220d 20px)', cBg: '#111', cBd: '2px solid #c0c0c0', cRad: '0', col: '#ffd700', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ffd700', fShad: '0 10px 20px #000', fTrans: 'scale(1.05)' },
-            'atari5200': { bg: '#111', cBg: '#000', cBd: '2px solid #c0c0c0', cRad: '8px', col: '#c0c0c0', font: 'sans-serif', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 15px #c0c0c0', fTrans: 'scale(1.05)' },
-            'atari7800': { bg: '#222', cBg: '#000', cBd: '2px solid #c0c0c0', cRad: '0', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ff0000', fShad: '0 0 15px #ff0000', fTrans: 'scale(1.05)' },
-            'lynx': { bg: '#333', cBg: '#111', cBd: '2px solid #ff0000', cRad: '10px', col: '#ff0000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 15px #ff0000', fTrans: 'scale(1.05)' },
-            'jaguar': { bg: '#000', cBg: '#111', cBd: '2px solid #e00000', cRad: '0', col: '#e00000', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #fff', fShad: '0 15px 30px #e00000', fTrans: 'scale(1.1)' },
-            'atarist': { bg: '#00aa00', cBg: '#e6e6e6', cBd: '2px solid #000', cRad: '0', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #000', fShad: '4px 4px 0 #000', fTrans: 'scale(1.05)' },
-
-            // CLASSIC CONSOLES & OBSCURE
-            'pce': { bg: '#1a1a1a', cBg: '#000', cBd: '2px solid #ff6600', cRad: '4px', col: '#ff6600', font: 'sans-serif', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 15px #ff6600', fTrans: 'scale(1.05)' },
-            'pcecd': { bg: '#000', cBg: '#111', cBd: '2px solid #00ccff', cRad: '4px', col: '#00ccff', font: 'sans-serif', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 15px #00ccff', fTrans: 'scale(1.05)' },
-            'pcfx': { bg: '#fff', cBg: '#f0f0f0', cBd: '2px solid #ccc', cRad: '0', col: '#000', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #0059a6', fShad: '0 10px 20px rgba(0,0,0,0.5)', fTrans: 'scale(1.1)' },
-            'supergrafx': { bg: '#333', cBg: '#222', cBd: '2px solid #ff9900', cRad: '8px', col: '#ff9900', font: 'sans-serif', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 15px #ff9900', fTrans: 'scale(1.05)' },
-            'wswan': { bg: '#e6e6e6', cBg: '#ccc', cBd: '2px solid #333', cRad: '12px', col: '#333', font: 'sans-serif', lay: 'grid', fOut: '4px solid #000', fShad: '0 5px 15px rgba(0,0,0,0.3)', fTrans: 'scale(1.05)' },
-            'ngp': { bg: '#silver', cBg: '#fff', cBd: '2px solid #333', cRad: '8px', col: '#333', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ff0000', fShad: '0 10px 20px rgba(0,0,0,0.4)', fTrans: 'scale(1.05)' },
-            'vectrex': { bg: '#000', cBg: '#000', cBd: '2px solid #fff', cRad: '0', col: '#fff', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 25px #fff, inset 0 0 10px #fff', fTrans: 'scale(1.05)' },
-            'colecovision': { bg: '#111', cBg: '#000', cBd: '2px solid #c0c0c0', cRad: '4px', col: '#c0c0c0', font: 'sans-serif', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 15px #fff', fTrans: 'scale(1.05)' },
-            'intellivision': { bg: 'repeating-linear-gradient(to right, #4a2e15, #4a2e15 10px, #3a220d 10px, #3a220d 20px)', cBg: '#000', cBd: '2px solid #ffd700', cRad: '0', col: '#ffd700', font: 'sans-serif', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 15px #ffd700', fTrans: 'scale(1.05)' },
-            'odyssey2': { bg: '#111', cBg: '#222', cBd: '2px solid #c0c0c0', cRad: '0', col: '#e00000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #e00000', fShad: '0 0 15px #e00000', fTrans: 'scale(1.05)' },
-            'channelf': { bg: '#ffcc00', cBg: '#000', cBd: '4px solid #4a2e15', cRad: '0', col: '#ffcc00', font: 'sans-serif', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 15px #000', fTrans: 'scale(1.05)' },
-            'arcadia2001': { bg: '#3a220d', cBg: '#000', cBd: '2px solid #silver', cRad: '0', col: '#silver', font: 'sans-serif', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 10px #fff', fTrans: 'scale(1.05)' },
-            'supervision': { bg: '#8b9bb4', cBg: '#9eab88', cBd: '4px solid #333', cRad: '8px', col: '#333', font: 'monospace', lay: 'grid', fOut: '4px solid #000', fShad: '0 5px 15px #000', fTrans: 'scale(1.05)' },
-            'uzebox': { bg: '#0044aa', cBg: '#ffcc00', cBd: '4px solid #000', cRad: '0', col: '#000', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: '0 5px 15px #000', fTrans: 'scale(1.05)' },
-            'tic80': { bg: '#1a1c2c', cBg: '#29366f', cBd: '2px solid #d95763', cRad: '0', col: '#d95763', font: 'monospace', lay: 'grid', fOut: '4px solid #595652', fShad: '0 0 15px #d95763', fTrans: 'scale(1.05)' },
-            '3do': { bg: '#000', cBg: '#111', cBd: '2px solid #ffd700', cRad: '0', col: '#ffd700', font: 'sans-serif', lay: 'horizontal', fOut: '4px solid #fff', fShad: '0 15px 30px #ffd700', fTrans: 'scale(1.1)' },
-            'cdi': { bg: '#b3b3b3', cBg: '#000044', cBd: '2px solid #00ccff', cRad: '4px', col: '#00ccff', font: 'sans-serif', lay: 'grid', fOut: '4px solid #fff', fShad: '0 10px 20px rgba(0,0,0,0.5)', fTrans: 'scale(1.05)' },
-
-            // ENGINES & WEB
-            'prboom': { bg: '#4a0000', cBg: '#220000', cBd: '2px solid #ff3300', cRad: '0', col: '#ff3300', font: 'monospace', lay: 'grid', fOut: '4px solid #ffcc00', fShad: '0 0 20px #ff3300', fTrans: 'scale(1.05)' },
-            'tyrquake': { bg: '#2b1b11', cBg: '#1a110a', cBd: '2px solid #8b5a2b', cRad: '0', col: '#d2b48c', font: 'monospace', lay: 'grid', fOut: '4px solid #ffcc00', fShad: '0 0 20px #8b5a2b', fTrans: 'scale(1.05)' },
-            'nxengine': { bg: '#000033', cBg: '#0000aa', cBd: '2px solid #fff', cRad: '0', col: '#fff', font: 'monospace', lay: 'grid', fOut: '4px solid #ffcc00', fShad: '0 0 15px #fff', fTrans: 'scale(1.05)' },
-            'easyrpg': { bg: '#0000aa', cBg: '#0000aa', cBd: '4px solid #fff', cRad: '8px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ffcc00', fShad: '0 0 15px #fff', fTrans: 'scale(1.05)' },
-            'flash': { bg: 'linear-gradient(to bottom, #ffffff, #cccccc)', cBg: '#f0f8ff', cBd: '1px solid #999', cRad: '12px', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #0059a6', fShad: '0 10px 20px rgba(0,0,0,0.3)', fTrans: 'scale(1.05)' },
+            // COMPUTERS & OBSCURITIES
+            'c64': { bg: '#4040E0', cBg: '#4040E0', cBd: '4px solid #A0A0FF', cRad: '0', col: '#A0A0FF', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 15px #fff', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'amiga': { bg: '#0055aa', cBg: '#ccc', cBd: '2px solid #fff', cRad: '0', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ff8800', fShad: '0 10px 20px #000', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'mac': { bg: '#e0e0e0', cBg: '#fff', cBd: '2px solid #000', cRad: '0', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #000', fShad: '4px 4px 0px #000', fTrans: 'scale(1.05)', textShadow: 'none' },
+            'atari2600': { bg: 'repeating-linear-gradient(to right, #4a2e15, #4a2e15 10px, #3a220d 10px, #3a220d 20px)', cBg: '#111', cBd: '2px solid #c0c0c0', cRad: '0', col: '#ffd700', font: 'sans-serif', lay: 'grid', fOut: '4px solid #ffd700', fShad: '0 10px 20px #000', fTrans: 'scale(1.05)', textShadow: '0 2px 4px #000' },
+            'vectrex': { bg: '#000', cBg: '#000', cBd: '2px solid #fff', cRad: '0', col: '#fff', font: 'monospace', lay: 'grid', fOut: '4px solid #fff', fShad: '0 0 25px #fff, inset 0 0 10px #fff', fTrans: 'scale(1.05)', textShadow: '0 0 5px #fff' },
+            'flash': { bg: 'linear-gradient(to bottom, #ffffff, #cccccc)', cBg: '#f0f8ff', cBd: '1px solid #999', cRad: '12px', col: '#000', font: 'sans-serif', lay: 'grid', fOut: '4px solid #0059a6', fShad: '0 10px 20px rgba(0,0,0,0.3)', fTrans: 'scale(1.05)', textShadow: 'none' },
         };
 
         // UI Routing
@@ -517,8 +487,8 @@
                 
                 window.currentViewerFilter = filter;
                 
-                // APPLY EXACT CSS THEME
-                const theme = THEMES[filter] || THEMES['all'];
+                // APPLY EXACT CSS THEME OR FALLBACK TO RETRO
+                const theme = THEMES[filter] || { bg: '#111', cBg: '#000', cBd: '2px solid #555', cRad: '8px', col: '#fff', font: 'sans-serif', lay: 'grid', fOut: '3px solid #fff', fShad: '0 0 15px #fff', fTrans: 'scale(1.05)', textShadow: '0 2px 4px #000' };
                 const wrapper = document.getElementById('console-dashboard-wrapper');
                 const grid = document.getElementById('full-library-grid');
                 
@@ -531,6 +501,7 @@
                 wrapper.style.setProperty('--theme-focus-outline', theme.fOut);
                 wrapper.style.setProperty('--theme-focus-shadow', theme.fShad);
                 wrapper.style.setProperty('--theme-focus-transform', theme.fTrans);
+                wrapper.style.setProperty('--theme-text-shadow', theme.textShadow || '0 2px 4px rgba(0,0,0,0.8)');
                 
                 grid.className = 'viewer-grid layout-' + theme.lay;
                 grid.style.display = (theme.lay === 'grid') ? 'grid' : 'flex';
@@ -633,7 +604,8 @@
 
                             grid.innerHTML += `
                                 <div class="theme-card" data-id="${game.id}" data-index="${index}" onclick="playFromLibrary(${game.id}, '${safeName}')" onmouseenter="setDynamicTitle('${safeName}')">
-                                    <button class="fav-btn ${favClass}" onclick="toggleFavorite(${game.id}, event)">★</button>
+                                    <button class="card-btn gear-btn" onclick="openGameManager(${game.id}, event)" title="Manage Title">⚙️</button>
+                                    <button class="card-btn fav-btn ${favClass}" onclick="toggleFavorite(${game.id}, event)">★</button>
                                     ${coverHtml}
                                     <h4>${game.name}</h4>
                                     <div class="card-meta">
@@ -648,6 +620,99 @@
                 }
             };
         }
+
+        // --------------------------------------------------------
+        // INLINE GAME MANAGER (EDIT / DELETE)
+        // --------------------------------------------------------
+        let currentlyManagingId = null;
+        let currentlyManagingCover = null;
+
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        window.openGameManager = function(id, event) {
+            if(event) event.stopPropagation();
+            currentlyManagingId = id;
+            db.transaction("games", "readonly").objectStore("games").get(id).onsuccess = (e) => {
+                const game = e.target.result;
+                if(!game) return;
+                
+                document.getElementById('manager-name-input').value = game.name;
+                currentlyManagingCover = game.coverBase64;
+                
+                const preview = document.getElementById('manager-cover-preview');
+                if(game.coverBase64) {
+                    preview.src = game.coverBase64;
+                    preview.style.display = 'block';
+                } else {
+                    preview.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" fill="%23222"><rect width="100%" height="100%"/></svg>';
+                }
+                document.getElementById('game-manager-modal').style.display = 'flex';
+            };
+        };
+
+        window.previewManagerCover = async function(input) {
+            if (input.files && input.files[0]) {
+                currentlyManagingCover = await getBase64(input.files[0]);
+                const preview = document.getElementById('manager-cover-preview');
+                preview.src = currentlyManagingCover;
+            }
+        };
+
+        window.saveGameManager = function() {
+            if(!currentlyManagingId) return;
+            const newName = document.getElementById('manager-name-input').value.trim();
+            if(!newName) return alert("Name cannot be empty.");
+            
+            const tx = db.transaction("games", "readwrite");
+            const store = tx.objectStore("games");
+            store.get(currentlyManagingId).onsuccess = (e) => {
+                const game = e.target.result;
+                if(!game) return;
+                game.name = newName;
+                game.coverBase64 = currentlyManagingCover;
+                store.put(game).onsuccess = () => {
+                    document.getElementById('game-manager-modal').style.display = 'none';
+                    renderDashboardGrid();
+                };
+            };
+        };
+
+        window.deleteFromManager = function() {
+            if(!currentlyManagingId) return;
+            if(!confirm("Are you sure you want to permanently delete this game?")) return;
+            
+            const id = currentlyManagingId;
+            document.getElementById('game-manager-modal').style.display = 'none';
+            
+            const txGet = db.transaction("games", "readonly");
+            txGet.objectStore("games").get(id).onsuccess = (e) => {
+                const game = e.target.result;
+                if (!game) return;
+                
+                if (game.isChunked) {
+                    const txChunks = db.transaction("chunks", "readwrite");
+                    txChunks.objectStore("chunks").openCursor().onsuccess = (ev) => {
+                        const cursor = ev.target.result;
+                        if (cursor) { 
+                            if (cursor.value.gameId === id) cursor.delete(); 
+                            cursor.continue(); 
+                        }
+                    };
+                }
+                const txDel = db.transaction("games", "readwrite");
+                txDel.objectStore("games").delete(id);
+                txDel.oncomplete = () => { 
+                    renderConsoleTabs(); // Auto re-renders grid inside
+                };
+            };
+        };
 
         function toggleFavorite(id, event) {
             event.stopPropagation();
@@ -672,8 +737,7 @@
 
             let coverBase64 = null;
             if (coverInput.files.length) {
-                const reader = new FileReader();
-                coverBase64 = await new Promise(r => { reader.onload = () => r(reader.result); reader.readAsDataURL(coverInput.files[0]); });
+                coverBase64 = await getBase64(coverInput.files[0]);
             }
 
             const tx = db.transaction("games", "readwrite");
@@ -766,6 +830,7 @@
             
             if (document.getElementById('console-dashboard-wrapper').style.display !== 'none' && 
                 document.getElementById('upload-modal').style.display === 'none' &&
+                document.getElementById('game-manager-modal').style.display === 'none' &&
                 document.getElementById('netplay-dashboard').classList.contains('active') === false) {
                 
                 const gp = navigator.getGamepads()[gamepadIndex];
@@ -781,6 +846,7 @@
                     const left = gp.buttons[14]?.pressed || gp.axes[0] < -0.5;
                     const right = gp.buttons[15]?.pressed || gp.axes[0] > 0.5;
                     const select = gp.buttons[0]?.pressed; 
+                    const manage = gp.buttons[3]?.pressed; // Y or Triangle
 
                     if (isHorizontal) {
                         if (left && focusedCardIndex > 0) { focusedCardIndex--; moved = true; }
@@ -803,6 +869,11 @@
                     if (select && focusedCardIndex >= 0) {
                         cards[focusedCardIndex].click();
                         lastGamepadEvent = Date.now() + 500; 
+                    }
+                    
+                    if (manage && focusedCardIndex >= 0) {
+                        openGameManager(Number(cards[focusedCardIndex].dataset.id));
+                        lastGamepadEvent = Date.now() + 500;
                     }
                 }
             }
